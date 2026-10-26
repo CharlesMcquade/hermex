@@ -176,7 +176,12 @@ struct ComposerChipMetrics: Equatable {
             let view = BotAvatarView(profile: reference.profile, avatar: reference.avatar, size: metrics.iconSize, motion: .still)
                 .environment(\.colorScheme, traits.userInterfaceStyle == .dark ? .dark : .light)
             let renderer = ImageRenderer(content: view)
-            renderer.scale = traits.displayScale > 0 ? traits.displayScale : UIScreen.main.scale
+            // Offscreen rasterization can see a 0 displayScale. Fall back to the current
+            // trait collection, then to 3× (every current iPhone), never to the main
+            // screen's scale, which is ambiguous on a two-display device.
+            let currentScale = UITraitCollection.current.displayScale
+            let fallbackScale: CGFloat = currentScale > 0 ? currentScale : 3
+            renderer.scale = traits.displayScale > 0 ? traits.displayScale : fallbackScale
             return renderer.uiImage
         }
     }
