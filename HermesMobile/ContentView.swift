@@ -691,6 +691,8 @@ struct HermesServerHome: View {
     @State private var sessions: HermesSessionsSide?
     @State private var isShowingSettings = false
     @State private var isPresentingAddServer = false
+    /// Measured by the body's `onGeometryChange`; see `HermesHomeLayout.usesSplit`.
+    @State private var containerWidth: CGFloat?
 
     init(authManager: AuthManager, server: URL, pendingBotDestination: Binding<BotDestination?>,
          pendingSessionDestination: Binding<HermesSessionDestination?>, pendingNewChat: Binding<HermesNewChatDestination?>,
@@ -722,9 +724,12 @@ struct HermesServerHome: View {
 
     var body: some View {
         let identity = HermesServerIdentity(account: authManager.activeServer, server: server)
-        let home = HermesHome(title: identity.title, avatar: avatar(identity), tab: $tab)
+        let home = HermesHome(title: identity.title, avatar: avatar(identity), tab: $tab,
+                              containerWidth: containerWidth)
+        let usesSplit = HermesHomeLayout.usesSplit(isHome: true, horizontalSizeClass: horizontalSizeClass,
+                                                   containerWidth: containerWidth)
         Group {
-            if HermesHomeLayout.usesSplit(isHome: true, horizontalSizeClass: horizontalSizeClass) {
+            if usesSplit {
                 homeContent(home)
                     .sheet(isPresented: $isShowingSettings, onDismiss: readConnection) {
                         NavigationStack {
@@ -745,6 +750,11 @@ struct HermesServerHome: View {
                 }
             }
         }
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { width in
+            containerWidth = width
+        }
         // A Hermes chat's Update sign-in (#942) signs the server out to its sign-in form, which
         // keeps the saved values and focuses the password; saving signs it back in.
         .modifier(HermesUpdateSignInModifier { authManager.hermesSignInRejected(server: server) })
@@ -753,7 +763,7 @@ struct HermesServerHome: View {
         // later return doesn't push that side's old chat again.
         .onChange(of: tab) {
             readConnection()
-            guard !HermesHomeLayout.usesSplit(isHome: true, horizontalSizeClass: horizontalSizeClass) else { return }
+            guard !usesSplit else { return }
             if tab == .sessions { inbox.selection = BotInboxSelection() } else { sessions?.navigation.covers.bringForward() }
         }
         // A bot route lands on the inbox, so Settings (and an Archived screen pushed from it, #1146)

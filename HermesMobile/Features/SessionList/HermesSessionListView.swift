@@ -355,7 +355,8 @@ struct HermesSessionListView: View {
     }
 
     private var usesSplit: Bool {
-        HermesHomeLayout.usesSplit(isHome: home != nil, horizontalSizeClass: horizontalSizeClass)
+        HermesHomeLayout.usesSplit(isHome: home != nil, horizontalSizeClass: horizontalSizeClass,
+                                   containerWidth: home?.containerWidth)
     }
 
     private var selectedSessionID: String? {

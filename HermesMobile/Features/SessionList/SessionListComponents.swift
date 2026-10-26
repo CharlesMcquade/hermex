@@ -1,10 +1,22 @@
 import SwiftUI
 import UIKit
 
-/// Hermes home owns a split only at regular width; pushed lists keep their caller's stack.
+/// Hermes home owns a split only at regular width that is also wide enough for a sidebar and
+/// a phone-width detail; pushed lists keep their caller's stack. Regular width alone is not
+/// "iPad": the iPhone Duo inner display is regular×regular at roughly 626pt wide in portrait,
+/// where a 280pt sidebar would leave a detail narrower than any iPhone. Width unknown (first
+/// layout) falls back to the size class so the first frame matches the old behavior.
 enum HermesHomeLayout {
-    static func usesSplit(isHome: Bool, horizontalSizeClass: UserInterfaceSizeClass?) -> Bool {
-        isHome && horizontalSizeClass == .regular
+    /// Below this container width a regular-width home stacks instead of splitting. 700 keeps
+    /// every current split (iPad mini portrait 744, Plus/Max landscape ≥ 926) and stacks only
+    /// the Duo inner display in portrait; its landscape (~890) still splits.
+    static let minimumSplitWidth: CGFloat = 700
+
+    static func usesSplit(isHome: Bool, horizontalSizeClass: UserInterfaceSizeClass?,
+                          containerWidth: CGFloat? = nil) -> Bool {
+        guard isHome, horizontalSizeClass == .regular else { return false }
+        guard let containerWidth, containerWidth > 0 else { return true }
+        return containerWidth >= minimumSplitWidth
     }
 }
 

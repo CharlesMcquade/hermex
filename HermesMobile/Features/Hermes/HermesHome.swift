@@ -11,6 +11,9 @@ struct HermesHome {
     let title: String
     let avatar: SessionsHeader.Avatar
     let tab: Binding<HermesHomeTab>
+    /// The home's measured width, so both sides decide split-vs-stack the same way
+    /// (`HermesHomeLayout.usesSplit`). nil until the first layout.
+    var containerWidth: CGFloat? = nil
 }
 
 /// The Hermes home's bar chrome (#709), the same on both sides: no top bar, since each side's
