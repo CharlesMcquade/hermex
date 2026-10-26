@@ -1180,15 +1180,22 @@ final class ComposerDictationLease {
             .first { $0.activationState == .foregroundActive }
         guard let scene else { return }
         Self.lockedSceneID = scene.session.persistentIdentifier
-        acquire(isPhone: scene.traitCollection.userInterfaceIdiom == .phone,
+        let traits = scene.traitCollection
+        acquire(isPhone: traits.userInterfaceIdiom == .phone,
+                locksOrientation: Self.locksOrientation(for: traits),
                 orientation: scene.interfaceOrientation)
         invalidateOrientation()
     }
 
-    func acquire(isPhone: Bool, orientation: UIInterfaceOrientation) {
+    /// `isPhone` keeps the screen awake while recording, as before. `locksOrientation` is
+    /// false on a regular×regular scene (iPhone Duo's inner display, which resizes the app
+    /// instead of rotating it and ignores supported orientations), so a fold or rotation
+    /// mid-dictation is never fought.
+    func acquire(isPhone: Bool, locksOrientation: Bool, orientation: UIInterfaceOrientation) {
         guard isPhone, previousIdle == nil else { return }
         previousIdle = readIdle()
         writeIdle(true)
+        guard locksOrientation else { return }
         let mask: UIInterfaceOrientationMask
         switch orientation {
         case .landscapeLeft: mask = .landscapeLeft
@@ -1197,6 +1204,15 @@ final class ComposerDictationLease {
         default: mask = .portrait
         }
         writeOrientation(mask)
+    }
+
+    /// Whether dictation may pin the scene's orientation: only a phone-idiom scene that is
+    /// not regular in both dimensions. Regular×regular is the iPhone Duo inner display (or an
+    /// iPad-sized window), where the system resizes the app and orientation is not ours to lock.
+    static func locksOrientation(for traits: UITraitCollection) -> Bool {
+        guard traits.userInterfaceIdiom == .phone else { return false }
+        let isRegularBoth = traits.horizontalSizeClass == .regular && traits.verticalSizeClass == .regular
+        return !isRegularBoth
     }
 
     func release() {

@@ -276,8 +276,8 @@ final class ComposerVoiceInputServerRecordingTests: APIClientTestCase {
             readIdle: { idleDisabled }, writeIdle: { idleDisabled = $0 },
             writeOrientation: { orientations.append($0) }
         )
-        lease.acquire(isPhone: true, orientation: .landscapeRight)
-        lease.acquire(isPhone: true, orientation: .portrait)
+        lease.acquire(isPhone: true, locksOrientation: true, orientation: .landscapeRight)
+        lease.acquire(isPhone: true, locksOrientation: true, orientation: .portrait)
         XCTAssertTrue(idleDisabled)
         XCTAssertEqual(orientations, [.landscapeRight])
         lease.release()
@@ -285,7 +285,7 @@ final class ComposerVoiceInputServerRecordingTests: APIClientTestCase {
         XCTAssertFalse(idleDisabled)
         XCTAssertEqual(orientations, [.landscapeRight, nil])
         idleDisabled = true
-        lease.acquire(isPhone: true, orientation: .portrait)
+        lease.acquire(isPhone: true, locksOrientation: true, orientation: .portrait)
         lease.release()
         XCTAssertTrue(idleDisabled, "Release must preserve a preexisting awake policy")
     }
@@ -297,10 +297,47 @@ final class ComposerVoiceInputServerRecordingTests: APIClientTestCase {
             readIdle: { idleDisabled }, writeIdle: { idleDisabled = $0 },
             writeOrientation: { orientations.append($0) }
         )
-        lease.acquire(isPhone: false, orientation: .portrait)
+        lease.acquire(isPhone: false, locksOrientation: false, orientation: .portrait)
         lease.release()
         XCTAssertFalse(idleDisabled)
         XCTAssertEqual(orientations.count, 0)
+    }
+
+    func testRegularRegularPhoneSceneKeepsAwakeButDoesNotLockOrientation() {
+        var idleDisabled = false
+        var orientations: [UIInterfaceOrientationMask?] = []
+        let lease = ComposerDictationLease(
+            readIdle: { idleDisabled }, writeIdle: { idleDisabled = $0 },
+            writeOrientation: { orientations.append($0) }
+        )
+        // iPhone Duo inner display: phone idiom, regular×regular.
+        lease.acquire(isPhone: true, locksOrientation: false, orientation: .landscapeRight)
+        XCTAssertTrue(idleDisabled, "Dictation still keeps the screen awake on the inner display")
+        XCTAssertEqual(orientations, [], "No orientation lock on a resizable regular×regular scene")
+        lease.release()
+        XCTAssertFalse(idleDisabled)
+        XCTAssertEqual(orientations, [nil], "Release clears any lock unconditionally")
+    }
+
+    func testLocksOrientationOnlyForNonRegularRegularPhoneTraits() {
+        func traits(idiom: UIUserInterfaceIdiom, h: UIUserInterfaceSizeClass, v: UIUserInterfaceSizeClass) -> UITraitCollection {
+            UITraitCollection(traitsFrom: [
+                UITraitCollection(userInterfaceIdiom: idiom),
+                UITraitCollection(horizontalSizeClass: h),
+                UITraitCollection(verticalSizeClass: v),
+            ])
+        }
+        // Outer display / ordinary iPhone portrait.
+        XCTAssertTrue(ComposerDictationLease.locksOrientation(for: traits(idiom: .phone, h: .compact, v: .regular)))
+        // Ordinary iPhone landscape.
+        XCTAssertTrue(ComposerDictationLease.locksOrientation(for: traits(idiom: .phone, h: .compact, v: .compact)))
+        // Plus/Max landscape: regular width, compact height — still a rotating phone.
+        XCTAssertTrue(ComposerDictationLease.locksOrientation(for: traits(idiom: .phone, h: .regular, v: .compact)))
+        // iPhone Duo inner display: phone idiom, regular×regular — never lock.
+        XCTAssertFalse(ComposerDictationLease.locksOrientation(for: traits(idiom: .phone, h: .regular, v: .regular)))
+        // iPad: never locked, as before.
+        XCTAssertFalse(ComposerDictationLease.locksOrientation(for: traits(idiom: .pad, h: .regular, v: .regular)))
+        XCTAssertFalse(ComposerDictationLease.locksOrientation(for: traits(idiom: .pad, h: .compact, v: .regular)))
     }
 
     func testRecordingOneByteOverUploadBoundarySkipsDataLoadAndServerUpload() {
