@@ -49,6 +49,7 @@ struct HermesSessionListView: View {
     @AppStorage(SectionVisibilitySettings.skillsKey) private var showsSkills = true
     @AppStorage(SectionVisibilitySettings.memoryKey) private var showsMemory = true
     @AppStorage(SectionVisibilitySettings.insightsKey) private var showsInsights = true
+    @State private var isShowingDrawer = false
     @AppStorage(HeaderLogoColor.storageKey) private var headerLogoColorHex = HeaderLogoColor.defaultHex
     private let entry: HermesSessionListEntry
     private let home: HermesHome?
@@ -144,6 +145,7 @@ struct HermesSessionListView: View {
                     logoColor: HeaderLogoColor.color(for: headerLogoColorHex), avatar: home.avatar,
                     field: SessionsHeader.Field(isExpanded: isSearchExpanded, text: $navigation.searchText,
                                                 isFocused: $isSearchFieldFocused, close: closeSearch),
+                    menu: usesSplit ? nil : { isShowingDrawer = true },
                     connection: viewModel.hermesConnection, reconnectNow: viewModel.reconnectNow,
                     openSearch: openSearch
                 )
@@ -155,13 +157,17 @@ struct HermesSessionListView: View {
                     .padding(.top, 16)
                     .sessionsScreenListRow()
             }
-            SessionSidebarUtilityRows(
-                viewModel: viewModel, topPadding: 10, automatedVisibility: .showAll, sectionVisibility: sectionVisibility,
-                profilesAreExpanded: .constant(false), projectsAreExpanded: $projectsAreExpanded,
-                selectedProjectID: $navigation.selectedProjectID, projectPendingDeletion: $navigation.covers.deletingProject,
-                projectPendingRename: $navigation.covers.renamingProject, openDestination: open, switchActiveProfile: { _ in },
-                presentProjectCreation: { covers.creatingProject = HermesProjectCreation(folder: "") }
-            )
+            // On compact these sections live in the home drawer instead; the split
+            // sidebar keeps them inline, where they are already the menu.
+            if usesSplit {
+                SessionSidebarUtilityRows(
+                    viewModel: viewModel, topPadding: 10, automatedVisibility: .showAll, sectionVisibility: sectionVisibility,
+                    profilesAreExpanded: .constant(false), projectsAreExpanded: $projectsAreExpanded,
+                    selectedProjectID: $navigation.selectedProjectID, projectPendingDeletion: $navigation.covers.deletingProject,
+                    projectPendingRename: $navigation.covers.renamingProject, openDestination: open, switchActiveProfile: { _ in },
+                    presentProjectCreation: { covers.creatingProject = HermesProjectCreation(folder: "") }
+                )
+            }
             if !groups.needsYou.isEmpty {
                 NeedsYouSessionsSection(
                     viewModel: viewModel, sessions: groups.needsYou, showsMessageCount: showsMessageCount,
@@ -219,6 +225,10 @@ struct HermesSessionListView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 22)
         }
+        .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer) { sessionsDrawerMenu } }
+        // The drawer's scrim covers the glass bottom bar too, so its buttons
+        // cannot be tapped while the menu is open.
+        .toolbarVisibility(isShowingDrawer ? .hidden : .automatic, for: .bottomBar)
         .refreshable { await viewModel.refreshHermes(modelContext: modelContext) }
         // Debounced inside; a new query or Profile cancels the search in flight.
         .task(id: SearchScope(profile: profile, showsAll: viewModel.hermesShowsAllProfiles, text: searchText, showingScheduled: covers.showingScheduled)) {
@@ -517,6 +527,44 @@ struct HermesSessionListView: View {
     private func openSearch() {
         withAnimation(SessionListMotion.searchChromeAnimation(reduceMotion: reduceMotion)) { isSearchExpanded = true }
         isSearchFieldFocused = true
+    }
+
+    /// The compact home drawer: the two home sides plus the sections the split
+    /// sidebar lists inline. A selection closes the drawer so the change lands
+    /// in the visible list.
+    private var sessionsDrawerMenu: some View {
+        List {
+            Section {
+                HomeDrawerEntry(title: String(localized: "Sessions"), systemImage: "bubble.left.and.bubble.right",
+                                isActive: true) {
+                    isShowingDrawer = false
+                }
+                HomeDrawerEntry(title: String(localized: "Bots"), systemImage: "cpu") {
+                    isShowingDrawer = false
+                    if let home { home.tab.wrappedValue = .bots }
+                }
+            }
+            Section {
+                SessionSidebarUtilityRows(
+                    viewModel: viewModel, topPadding: 4, automatedVisibility: .showAll, sectionVisibility: sectionVisibility,
+                    profilesAreExpanded: .constant(false), projectsAreExpanded: $projectsAreExpanded,
+                    selectedProjectID: Binding(
+                        get: { selectedProjectID },
+                        set: { selectedProjectID = $0; isShowingDrawer = false }),
+                    projectPendingDeletion: $navigation.covers.deletingProject,
+                    projectPendingRename: $navigation.covers.renamingProject,
+                    openDestination: { destination in
+                        isShowingDrawer = false
+                        open(destination)
+                    },
+                    switchActiveProfile: { _ in isShowingDrawer = false },
+                    presentProjectCreation: { covers.creatingProject = HermesProjectCreation(folder: "") }
+                )
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 0)
     }
 
     private func closeSearch() {

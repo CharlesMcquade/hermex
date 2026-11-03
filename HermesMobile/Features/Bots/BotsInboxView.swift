@@ -79,6 +79,8 @@ import SwiftUI
                         .padding().accessibilityAddTraits(.updatesFrequently)
                 }
             }
+            .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer) { botsDrawerMenu } }
+            .toolbarVisibility(isShowingDrawer ? .hidden : .automatic, for: .bottomBar)
             .task(id: toast) {
                 guard toast != nil else { return }
                 do { try await Task.sleep(for: .seconds(5)) } catch { return }
@@ -86,6 +88,8 @@ import SwiftUI
             }
         attachPresentations(to: toasted)
     }
+
+    @State private var isShowingDrawer = false
 
     private var usesSplit: Bool {
         HermesHomeLayout.usesSplit(isHome: home != nil, horizontalSizeClass: horizontalSizeClass,
@@ -245,6 +249,7 @@ import SwiftUI
         if let home {
             SessionsHeader(logoColor: HeaderLogoColor.color(for: headerLogoColorHex), avatar: home.avatar,
                            searchLabel: "Search bots and messages", isSearchDisabled: inbox.connection == nil,
+                           menu: usesSplit ? nil : { isShowingDrawer = true },
                            connection: inbox.homeConnection, reconnectNow: inbox.reconnectNow,
                            openSearch: { showingSearch = true })
                 .sessionsTopChromeListRow()
@@ -255,6 +260,25 @@ import SwiftUI
     private var chrome: some ViewModifier {
         BotsInboxChrome(home: home, isOffline: inbox.connection == nil, search: { showingSearch = true },
                         openSetup: { showingSetup = true }, filter: { filterMenu }, newChat: { newChatMenu })
+    }
+
+    /// The Bots side's compact drawer: just the two home sides, since the
+    /// utility sections belong to the sessions side's drawer.
+    private var botsDrawerMenu: some View {
+        List {
+            Section {
+                HomeDrawerEntry(title: String(localized: "Sessions"), systemImage: "bubble.left.and.bubble.right") {
+                    isShowingDrawer = false
+                    if let home { home.tab.wrappedValue = .sessions }
+                }
+                HomeDrawerEntry(title: String(localized: "Bots"), systemImage: "cpu", isActive: true) {
+                    isShowingDrawer = false
+                }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 0)
     }
 
     /// New Bot and New Group Chat: the pushed inbox's + menu, and the home's new chat.

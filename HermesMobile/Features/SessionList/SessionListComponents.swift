@@ -253,6 +253,9 @@ struct SessionsHeader: View {
     /// What the search button opens, for VoiceOver: the sessions, or the Bots side's sheet.
     var searchLabel: LocalizedStringKey = "Search sessions"
     var isSearchDisabled = false
+    /// Opens the compact home's drawer. nil on split layouts, whose sidebar is
+    /// already the menu — the hamburger shows only when this is set.
+    var menu: (() -> Void)? = nil
     /// What the list's rows say about the connection, for the status line (#1374).
     var connection = HomeConnectionStatus.Facts()
     var reconnectNow: () -> Void = {}
@@ -262,6 +265,19 @@ struct SessionsHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: isExpanded ? 0 : 16) {
+                if let menu {
+                    Button(action: menu) {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 22, weight: .semibold))
+                            .frame(width: Self.iconVisualSize, height: Self.iconVisualSize)
+                            .frame(width: Self.iconHitTarget, height: Self.iconHitTarget)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, isExpanded ? 12 : 0)
+                    .accessibilityLabel(Text("Open menu"))
+                }
+
                 HermesHeaderLogo(selectedColor: logoColor)
                     .frame(width: isExpanded ? 0 : 160, alignment: .leading)
                     .opacity(isExpanded ? 0 : 1)

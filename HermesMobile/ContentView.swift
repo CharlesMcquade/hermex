@@ -724,10 +724,10 @@ struct HermesServerHome: View {
 
     var body: some View {
         let identity = HermesServerIdentity(account: authManager.activeServer, server: server)
-        let home = HermesHome(title: identity.title, avatar: avatar(identity), tab: $tab,
-                              containerWidth: containerWidth)
         let usesSplit = HermesHomeLayout.usesSplit(isHome: true, horizontalSizeClass: horizontalSizeClass,
                                                    containerWidth: containerWidth)
+        let home = HermesHome(title: identity.title, avatar: avatar(identity), tab: $tab,
+                              containerWidth: containerWidth, showsTabSwitch: usesSplit)
         Group {
             if usesSplit {
                 homeContent(home)
