@@ -46,7 +46,7 @@ struct APIKeyForm: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             } footer: {
-                Text("Saved on the server in Profile “\(profile)”. Hermex doesn't keep a copy.")
+                Text("Saved on the server in Profile “\(profile)”. Verity doesn't keep a copy.")
             }
 
             if key?.isSet == true {

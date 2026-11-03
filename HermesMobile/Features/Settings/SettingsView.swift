@@ -90,7 +90,7 @@ struct SettingsView: View {
                     SettingsLabel(title: String(localized: "General"), systemImage: "gearshape")
                 }
             } header: {
-                Text(verbatim: "Hermex")
+                Text(verbatim: "Verity")
             } footer: {
                 Text("Applies on this iPhone to every server.")
             }
@@ -102,7 +102,7 @@ struct SettingsView: View {
                     LabeledContent {
                         Text(SettingsAboutPage.appVersion)
                     } label: {
-                        SettingsLabel(title: String(localized: "About Hermex"), systemImage: "info.circle")
+                        SettingsLabel(title: String(localized: "About Verity"), systemImage: "info.circle")
                     }
                 }
 

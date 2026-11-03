@@ -48,9 +48,9 @@ enum HermesSessionFenceRefusal: LocalizedError, Equatable {
         switch self {
         case .changed: return String(localized: "This session changed on the server. Try again.")
         case .busy: return String(localized: "This session is busy. Try again when it finishes.")
-        case .updateRequired: return String(localized: "Update Hermex to change sessions on this server.")
+        case .updateRequired: return String(localized: "Update Verity to change sessions on this server.")
         case .refused:
-            return String(localized: "The server refused to change this session. If an earlier Hermex 2.0 build created it, duplicate it and change the copy.")
+            return String(localized: "The server refused to change this session. If an earlier Verity 2.0 build created it, duplicate it and change the copy.")
         }
     }
 }

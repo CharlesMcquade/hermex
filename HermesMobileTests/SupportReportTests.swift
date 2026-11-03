@@ -8,7 +8,7 @@ import XCTest
     func testReportNamesTheTestedReleaseOnlyForHermes() {
         let hermes = SupportReport(server: Self.account(kind: .hermes, serverVersion: "0.21.4"))
         let hermesLines = hermes.text.components(separatedBy: "\n")
-        XCTAssertEqual(hermesLines.first, "Hermex support details")
+        XCTAssertEqual(hermesLines.first, "Verity support details")
         XCTAssertTrue(hermesLines.contains("Server kind: Hermes"))
         XCTAssertTrue(hermesLines.contains("Server release: 0.21.4"))
         XCTAssertTrue(hermesLines.contains("Tested Hermes release: \(HermesCompatibility.testedVersion)"))

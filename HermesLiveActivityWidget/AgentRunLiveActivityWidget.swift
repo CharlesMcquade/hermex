@@ -228,7 +228,7 @@ private struct AgentRunLockScreenView: View {
                                 isStale: context.presentedState.isStale, size: 34)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(isBot ? "Hermex · \(String(localized: "Bot"))" : "Hermex")
+                Text(isBot ? "Verity · \(String(localized: "Bot"))" : "Verity")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(palette.secondaryText)
                     .textCase(.uppercase)
@@ -363,7 +363,7 @@ private struct AgentRunIslandBadge: View {
     var body: some View {
         HStack(spacing: 6) {
             AgentRunLeadingMark(bot: bot, status: status, isStale: false)
-            Text(bot == nil ? "Hermex" : title)
+            Text(bot == nil ? "Verity" : title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(palette.primaryText)
                 .lineLimit(1)
@@ -428,12 +428,12 @@ private struct AgentRunIslandCompactMark: View {
         .accessibilityLabel(accessibilityLabel)
     }
 
-    /// "Hermex, Thinking". Stale work says it shows the latest status, or for a Bot
+    /// "Verity, Thinking". Stale work says it shows the latest status, or for a Bot
     /// that it is disconnected; a stale Bot also says how to recover (#584).
     private var accessibilityLabel: String {
         let compact = AgentRunCompactPresentation(state: state)
         let stale = AgentRunStaleBotPresentation.presentation(state: state, isBot: isBot)
-        var parts = ["Hermex"]
+        var parts = ["Verity"]
         if compact == .staleWork {
             parts.append(stale?.lead ?? String(localized: "Latest status shown"))
         } else {

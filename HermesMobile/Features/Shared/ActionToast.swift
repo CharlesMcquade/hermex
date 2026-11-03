@@ -429,7 +429,7 @@ extension ActionToast {
             switch first.reason {
             case .tooLarge: return String(localized: "1 item wasn’t added: \(firstName) is over 20 MB.")
             case .unreadable: return String(localized: "1 item wasn’t added: \(firstName) couldn’t be read.")
-            case .unsupported: return String(localized: "1 item wasn’t added: Hermex can’t attach \(firstName).")
+            case .unsupported: return String(localized: "1 item wasn’t added: Verity can’t attach \(firstName).")
             case .overLimit, nil: break
             }
         }

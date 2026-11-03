@@ -68,7 +68,7 @@ struct SettingsDiagnosticsPage: View {
                             }
                     }
                 } footer: {
-                    Text("iOS delivers these reports. Hermex keeps up to 10 for 14 days, on this device only.")
+                    Text("iOS delivers these reports. Verity keeps up to 10 for 14 days, on this device only.")
                 }
             }
         }

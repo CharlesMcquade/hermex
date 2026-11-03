@@ -476,7 +476,7 @@ import XCTest
         await state.archiveBoard(slug: "scratch")
 
         XCTAssertEqual(state.boardMutationState?.phase, .succeeded)
-        XCTAssertEqual(state.selectedBoardSlug, "default", "browsing stays local to Hermex")
+        XCTAssertEqual(state.selectedBoardSlug, "default", "browsing stays local to Verity")
         XCTAssertEqual(writes(), [
             "POST /api/plugins/kanban/boards",
             "POST /api/plugins/kanban/boards/scratch/switch",

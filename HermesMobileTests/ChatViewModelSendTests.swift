@@ -57,7 +57,7 @@ final class ChatViewModelSendTests: XCTestCase {
     /// The real on-device voice renders audio the Listen player can play and scrub (#1352).
     @MainActor
     func testOnDeviceSpeechRendersAudioTheListenPlayerCanPlay() async throws {
-        let audio = try await OnDeviceSpeech.render("Hermex reads this reply aloud.")
+        let audio = try await OnDeviceSpeech.render("Verity reads this reply aloud.")
         let player = try ListenAudioPlayer(data: audio)
         XCTAssertGreaterThan(player.duration, 0.5)
     }

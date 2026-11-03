@@ -90,10 +90,10 @@ struct SettingsAboutPage: View {
                 })
 
                 SettingsExternalLink(
-                    title: String(localized: "Rate Hermex"),
+                    title: String(localized: "Rate Verity"),
                     systemImage: "star",
                     destination: AppConfig.writeReviewURL,
-                    accessibilityLabel: String(localized: "Rate Hermex, opens the App Store")
+                    accessibilityLabel: String(localized: "Rate Verity, opens the App Store")
                 )
             }
 
@@ -105,7 +105,7 @@ struct SettingsAboutPage: View {
                 }
             }
         }
-        .settingsPage(String(localized: "About Hermex"))
+        .settingsPage(String(localized: "About Verity"))
         .task { await diagnostics.observe() }
         .sheet(isPresented: $isShowingSupportDetails) {
             SupportDetailsSheet(text: report.text)
@@ -118,7 +118,7 @@ struct SettingsAboutPage: View {
             if troubleshootingFailure == .tooManyWaiting {
                 Text("10 texts are already waiting to open. Open or discard them in Sessions, then try again.")
             } else {
-                Text("Hermex couldn’t save the text. Try again.")
+                Text("Verity couldn’t save the text. Try again.")
             }
         }
     }

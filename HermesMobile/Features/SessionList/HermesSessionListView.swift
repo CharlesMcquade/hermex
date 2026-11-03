@@ -295,8 +295,8 @@ struct HermesSessionListView: View {
             }
         } message: { failure in
             Text(verbatim: failure.reason + "\n\n" + (failure.share.sharedImport.shortcut == nil
-                ? String(localized: "Nothing was added. Discard deletes this saved share from Hermex.")
-                : String(localized: "Nothing was sent. Discard deletes this text from Hermex.")))
+                ? String(localized: "Nothing was added. Discard deletes this saved share from Verity.")
+                : String(localized: "Nothing was sent. Discard deletes this text from Verity.")))
         }
         .modifier(SessionActionConfirmations(
             viewModel: viewModel, showFailure: { actionToast.show(.failure($0)) }, sessionPendingDeletion: $navigation.covers.deleting, projectPendingDeletion: $navigation.covers.deletingProject,
@@ -1074,7 +1074,7 @@ struct HermesShareFailure {
         case BotAttachmentFailure.unreadable:
             reason = String(localized: "One of the files couldn’t be read.")
         default:
-            reason = String(localized: "Hermex couldn’t save the files on this iPhone.")
+            reason = String(localized: "Verity couldn’t save the files on this iPhone.")
         }
     }
 }

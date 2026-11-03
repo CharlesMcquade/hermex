@@ -53,12 +53,12 @@ final class AppIntentRouter {
     }
 }
 
-/// "New Chat" — opens Hermex on the New Chat composer, mirroring the in-app "+" button
+/// "New Chat" — opens Verity on the New Chat composer, mirroring the in-app "+" button
 /// (no server session is created until the first message). Available to the Action button,
 /// Shortcuts, Spotlight, and Siri via `HermexShortcuts`.
 struct NewChatIntent: AppIntent {
     static var title: LocalizedStringResource = "New Chat"
-    static var description = IntentDescription("Open Hermex on a new, empty chat.")
+    static var description = IntentDescription("Open Verity on a new, empty chat.")
 
     /// Foregrounds the app so the navigation can run in-process.
     static var openAppWhenRun: Bool = true
@@ -78,7 +78,7 @@ struct NewChatIntent: AppIntent {
 /// the system prompt appears, and if it's denied the composer shows a clear error instead.
 struct NewChatVoiceIntent: AppIntent {
     static var title: LocalizedStringResource = "New Chat with Voice"
-    static var description = IntentDescription("Open Hermex on a new chat and start voice dictation.")
+    static var description = IntentDescription("Open Verity on a new chat and start voice dictation.")
 
     /// Foregrounds the app so the navigation — and the microphone — can run in-process.
     static var openAppWhenRun: Bool = true
@@ -98,7 +98,7 @@ struct NewChatVoiceIntent: AppIntent {
 /// Profile (#1180) adds its server, and opens a new Hermes session there.
 struct NewChatInProfileIntent: AppIntent {
     static var title: LocalizedStringResource = "New Chat in Profile"
-    static var description = IntentDescription("Open Hermex on a new chat pinned to a specific profile.")
+    static var description = IntentDescription("Open Verity on a new chat pinned to a specific profile.")
 
     /// Foregrounds the app so the navigation can run in-process.
     static var openAppWhenRun: Bool = true
@@ -125,7 +125,7 @@ struct NewChatInProfileIntent: AppIntent {
 /// Profile. A webui Profile can't take it.
 struct NewChatWithContentIntent: AppIntent {
     static var title: LocalizedStringResource = "New Chat with Content"
-    static var description = IntentDescription("Open Hermex on a new chat with this text in the composer. Nothing is sent until you send it.")
+    static var description = IntentDescription("Open Verity on a new chat with this text in the composer. Nothing is sent until you send it.")
 
     /// Foregrounds the app so the user can review the text.
     static var openAppWhenRun: Bool = true
@@ -176,9 +176,9 @@ enum NewChatWithContentError: Error, Equatable, CustomLocalizedStringResourceCon
         switch self {
         case .empty: "There’s no text to add to a new chat."
         case .tooLong: "That text is too long. A Shortcut can add up to 100 KB."
-        case .tooManyWaiting: "10 Shortcut texts are already waiting. Open Hermex to review them first."
-        case .noHermesServer: "Choose a Profile on a Hermes server, or make a Hermes server active in Hermex."
-        case .storage: "Hermex couldn’t save the text. Try again."
+        case .tooManyWaiting: "10 Shortcut texts are already waiting. Open Verity to review them first."
+        case .noHermesServer: "Choose a Profile on a Hermes server, or make a Hermes server active in Verity."
+        case .storage: "Verity couldn’t save the text. Try again."
         }
     }
 }

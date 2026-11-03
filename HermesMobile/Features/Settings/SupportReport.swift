@@ -28,7 +28,7 @@ struct SupportReport {
     /// English on purpose: it is read by support and by agents, not shown as UI copy.
     var text: String {
         var lines = [
-            "Hermex support details",
+            "Verity support details",
             "App version: \(appVersion ?? "unknown") (\(build ?? "unknown"))",
             "Channel: \(channel.rawValue)",
             "iOS: \(iOSVersion)",

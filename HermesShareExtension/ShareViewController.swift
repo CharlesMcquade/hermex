@@ -37,7 +37,7 @@ final class ShareViewController: UIViewController {
         view.backgroundColor = .clear
         view.isOpaque = false
 
-        statusLabel.text = "Opening Hermex..."
+        statusLabel.text = "Opening Verity..."
         statusLabel.font = .preferredFont(forTextStyle: .headline)
         statusLabel.textAlignment = .center
         statusLabel.textColor = .secondaryLabel
@@ -65,7 +65,7 @@ final class ShareViewController: UIViewController {
         }
 
         guard let directory = HermesShareDraft.containerURL() else {
-            showStatus("Could not access Hermex storage.")
+            showStatus("Could not access Verity storage.")
             completeRequest(after: 0.8)
             return
         }
@@ -89,7 +89,7 @@ final class ShareViewController: UIViewController {
     /// Nothing in the share can be added: says why, and waits for Done so the reason can be read,
     /// with VoiceOver too (#1401). English only, like the rest of the extension.
     private func showNothingAdded(skipped: [SharedSkippedItem]) {
-        let message = [Self.reason(for: skipped), "Hermex accepts text, URLs, images, PDFs, and files up to 20 MB."]
+        let message = [Self.reason(for: skipped), "Verity accepts text, URLs, images, PDFs, and files up to 20 MB."]
             .compactMap { $0 }
             .joined(separator: "\n\n")
         let alert = UIAlertController(title: "Nothing was added", message: message, preferredStyle: .alert)
@@ -110,7 +110,7 @@ final class ShareViewController: UIViewController {
         let name = first.filename ?? "The item"
         let reason = switch first.reason {
         case .tooLarge: "\(name) is over 20 MB."
-        case .unsupported: "Hermex can’t attach \(name)."
+        case .unsupported: "Verity can’t attach \(name)."
         case .unreadable, .overLimit, nil: "\(name) couldn’t be read."
         }
         let rest = skipped.count - 1
@@ -151,7 +151,7 @@ final class ShareViewController: UIViewController {
         }
 
         // Fallback if everything fails
-        showStatus("Shared content saved. Open Hermex manually.")
+        showStatus("Shared content saved. Open Verity manually.")
         completeRequest(after: 1.5)
     }
 

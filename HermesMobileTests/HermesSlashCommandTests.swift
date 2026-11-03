@@ -22,7 +22,7 @@ import Observation
 
         XCTAssertTrue(catalog.hostArgumentNames.isSuperset(of: ["context", "ctx", "approvals", "hello"]))
         XCTAssertTrue(catalog.hostArgumentNames.isDisjoint(with: ["model", "personality", "undo", "compact", "reset"]),
-                      "Hermex's own and the held commands never ask the host")
+                      "Verity's own and the held commands never ask the host")
 
         let ranked = AgentSlashCommandSuggestion.matching("ctx", in: catalog.commands, matchingAliases: true)
         XCTAssertEqual(ranked.first?.name, "context")
@@ -303,7 +303,7 @@ import Observation
         chat.host.next("slash.exec", .init(result: .object(["type": .string("alias"), "target": .string("hello")])))
         let looped = await chat.model.runHermesSlashCommand("/hello")
         XCTAssertEqual(looped, .notDelivered)
-        XCTAssertEqual(chat.model.sendErrorMessage, "/hello points to another alias, so Hermex didn't run it.")
+        XCTAssertEqual(chat.model.sendErrorMessage, "/hello points to another alias, so Verity didn't run it.")
         XCTAssertEqual(chat.writes("slash.exec").count, 4)
     }
 

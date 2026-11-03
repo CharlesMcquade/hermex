@@ -630,7 +630,7 @@ private struct MoveToHermesReportView: View {
             if let remove {
                 Button(role: .destructive, action: remove) { Text("Remove \(source)…").frame(maxWidth: .infinity) }
                     .buttonStyle(.bordered)
-                Text("\(source)’s chats stay on its host. Only Hermex’s copy of the server is removed.")
+                Text("\(source)’s chats stay on its host. Only Verity’s copy of the server is removed.")
                     .font(.footnote)
                     .fontWeight(.regular)
                     .foregroundStyle(.secondary)
@@ -1097,7 +1097,7 @@ private struct MoveToHermesQuestionSheet: View {
                 Text("Move \(source) to Hermes")
                     .font(.title3.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
-                Text("Hermex now talks to Hermes directly. Your chats, titles, pins and drafts come with you.")
+                Text("Verity now talks to Hermes directly. Your chats, titles, pins and drafts come with you.")
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 8) {
                     point(String(localized: "Nothing is deleted. \(source) keeps working until you remove it."))
@@ -1164,7 +1164,7 @@ private struct MoveToHermesOfferSheet: View {
                 Text("Signed in to \(URL(string: offer.destinationID)?.host ?? offer.destinationID)")
                     .font(.title3.weight(.semibold))
                     .accessibilityAddTraits(.isHeader)
-                Text("Bring your chats from \(source)? Hermex checks which ones Hermes already has, then shows you what it will copy before it starts.")
+                Text("Bring your chats from \(source)? Verity checks which ones Hermes already has, then shows you what it will copy before it starts.")
                     .foregroundStyle(.secondary)
                 VStack(spacing: 10) {
                     Button { isBringing = true } label: {

@@ -9,8 +9,9 @@ in-repo conventions (`AGENTS.md`, `CONTRIBUTING.md`, `DEVELOPMENT.md`); this fil
 - **Fork `master`** (`CharlesMcquade/hermex`) mirrors upstream `master`. Fast-forward syncs
   only — it never diverges, so PRs stay clean and syncs are trivial.
 - **`charles/main` is the maintained rev**: upstream `master` + Charles's capabilities
-  (Duo conformance, rendering fixes, fork docs). Device builds of "Hermex [Dev]" come from
-  here. Keep it linear on top of `master` (cherry-pick / rebase, no merge commits).
+  (Duo conformance, rendering fixes, fork docs, the Verity rebrand). Device builds of
+  "Verity" come from here. Keep it linear on top of `master` (cherry-pick / rebase, no
+  merge commits).
 - **Topic branches** (`issue/…`, `fix/…`) are the PR vehicles, cut from upstream `master`.
   A capability is PR'd *selectively* — when Charles wants it upstreamed — and carried in
   `charles/main` regardless of PR state. When a commit lives in both a topic branch and
@@ -29,7 +30,7 @@ git push fork charles/main
 Full-suite gate before every push of `charles/main`. After a sync, rebuild + reinstall the
 device build if the synced changes touch anything the phone uses.
 
-## Deployment — "Hermex [Dev]" → iPhone Duo (`DCI Duo`, UDID `00008160-000C61023E40000A`)
+## Deployment — "Verity" → iPhone Duo (`DCI Duo`, UDID `00008160-000C61023E40000A`)
 
 - Identity lives in gitignored `Config/Local.xcconfig` (never edit `project.pbxproj` or
   `Config/Shared.xcconfig`): `DEVELOPMENT_TEAM = 7QHECSARP2`,
@@ -37,14 +38,16 @@ device build if the synced changes touch anything the phone uses.
   `APP_GROUP_IDENTIFIER = group.com.charlesmcquade.hermex`.
 - Display name: `APP_DISPLAY_NAME = Hermex` is explicit at project level in
   `project.pbxproj`, so it is overridden on the build command line, not in xcconfig:
-  `APP_DISPLAY_NAME="Hermex [Dev]"`. Same mechanism as upstream's `branch-testflight` flow.
+  `APP_DISPLAY_NAME="Verity"`. (The rebrand keeps the override mechanism; the name needs
+  no `[Dev]` suffix since "Verity" cannot collide with the App Store Hermex.) Same
+  mechanism as upstream's `branch-testflight` flow.
 - Build + install (Wi-Fi works; both provisioning flags required for a device new to the team):
   ```zsh
   xcodebuild -project HermesMobile.xcodeproj -scheme HermesMobile \
     -destination "platform=iOS,id=00008160-000C61023E40000A" \
     -derivedDataPath .build/DerivedData-device \
     -allowProvisioningUpdates -allowProvisioningDeviceRegistration \
-    APP_DISPLAY_NAME="Hermex [Dev]" build
+    APP_DISPLAY_NAME="Verity" build
   xcrun devicectl device install app --device 00008160-000C61023E40000A \
     .build/DerivedData-device/Build/Products/Debug-iphoneos/HermesMobile.app
   ```

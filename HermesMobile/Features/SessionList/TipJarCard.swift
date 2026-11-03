@@ -26,13 +26,13 @@ struct TipJarCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
                 companion
-                Text("Keep Hermex going")
+                Text("Keep Verity going")
                     .font(.headline)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, minHeight: faceSize, alignment: .leading)
                 closeButton
             }
-            Text("Hermex is free and open source, with no ads and no tracking. Supporters make that possible.")
+            Text("Verity is free and open source, with no ads and no tracking. Supporters make that possible.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -79,9 +79,9 @@ struct TipJarCard: View {
         let appearance = BotProfileAppearance(
             look: ["shape": .string("circle"), "color": .string("#ffe000"),
                    "expression": .string(expression)],
-            fallbackTitle: "Hermex"
+            fallbackTitle: "Verity"
         )
-        return BotAvatarMarkView(name: "Hermex", appearance: appearance,
+        return BotAvatarMarkView(name: "Verity", appearance: appearance,
                                  size: faceSize,
                                  pose: pose)
             .animation(canAnimate ? .easeInOut(duration: 0.18) : nil, value: phase)

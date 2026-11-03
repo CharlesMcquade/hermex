@@ -14,7 +14,7 @@ struct ProviderLimitsWidget: Widget {
                 .widgetURL(entry.snapshot?.destination.url)
         }
         .configurationDisplayName("Limits")
-        .description("Subscription limits from Usage in Hermex.")
+        .description("Subscription limits from Usage in Verity.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
     }
 }
@@ -240,7 +240,7 @@ private struct EmptyLimits: View {
             VStack(alignment: .leading, spacing: 1) {
                 Label("Limits", systemImage: "gauge.with.dots.needle.33percent")
                     .font(.caption2)
-                Text("Open Usage in Hermex")
+                Text("Open Usage in Verity")
                     .font(.headline)
                     .minimumScaleFactor(0.7)
             }
@@ -254,7 +254,7 @@ private struct EmptyLimits: View {
                 Spacer(minLength: 4)
                 Text("No limits yet")
                     .font(.subheadline.weight(.semibold))
-                Text("Open Usage in Hermex to show them here.")
+                Text("Open Usage in Verity to show them here.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -304,7 +304,7 @@ private struct WindowFootnote: View {
 
 private struct RefreshPrompt: View {
     var body: some View {
-        Text("Open Hermex to refresh")
+        Text("Open Verity to refresh")
             .lineLimit(2)
     }
 }

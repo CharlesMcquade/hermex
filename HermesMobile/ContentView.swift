@@ -52,8 +52,8 @@ struct ContentView: View {
                 Button("Not Now", role: .cancel) { releasePendingSharedImport(shortcut.share) }
             } message: { shortcut in
                 switch shortcut.share.sharedImport.shortcut?.origin ?? .shortcut {
-                case .shortcut: Text("\(shortcut.server) was removed from Hermex, so the text from Shortcuts can’t open there.")
-                case .troubleshooting: Text("\(shortcut.server) was removed from Hermex, so the troubleshooting text can’t open there.")
+                case .shortcut: Text("\(shortcut.server) was removed from Verity, so the text from Shortcuts can’t open there.")
+                case .troubleshooting: Text("\(shortcut.server) was removed from Verity, so the troubleshooting text can’t open there.")
                 }
             }
             .task {

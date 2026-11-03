@@ -169,7 +169,7 @@ final class MemoryCanonicalizerTests: XCTestCase {
     private static let inputs = [
         "",
         " \n\t\n",
-        "Uzair prefers short PR descriptions.\n§\nHermex builds in Swift 5 mode.",
+        "Uzair prefers short PR descriptions.\n§\nVerity builds in Swift 5 mode.",
         "a\n\n§\n\nb\n",
         "§\n§\n  a  \n§\n\n§",
         "a\n§\nb\n§\na",
@@ -183,7 +183,7 @@ final class MemoryCanonicalizerTests: XCTestCase {
     ]
 
     func testTheAgentsOwnFileIsUnchanged() {
-        let agentWritten = "Uzair prefers short PR descriptions.\n§\nHermex builds in Swift 5 mode.\n§\n- a list\n- inside one entry"
+        let agentWritten = "Uzair prefers short PR descriptions.\n§\nVerity builds in Swift 5 mode.\n§\n- a list\n- inside one entry"
 
         XCTAssertEqual(MemoryCanonicalizer.canonical(agentWritten), agentWritten)
     }
