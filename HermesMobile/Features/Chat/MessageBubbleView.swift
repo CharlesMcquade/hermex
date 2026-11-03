@@ -19,6 +19,7 @@ struct MessageBubbleView: View {
     @Environment(\.chatWorkspaceRoot) private var chatWorkspaceRoot
     @AppStorage(ChatTranscriptDisplaySettings.hidesAttachmentPathsKey) private var hidesAttachmentPaths = true
     @AppStorage(ChatTranscriptDisplaySettings.showsResponseSpeedKey) private var showsResponseSpeed = false
+    @AppStorage(MessageBubbleColor.storageKey) private var messageColorHex = ""
 
     /// Bot snapshots are text-only and must render synchronously while growing.
     let textOnly: Bool
@@ -645,14 +646,18 @@ struct MessageBubbleView: View {
     }
 
     /// Opaque even when queued, which mixes it toward the transcript's background, so the
-    /// fold's gradient still hides the text under it.
+    /// fold's gradient still hides the text under it. A stored Message Color replaces the
+    /// system gray; the queued dim still applies on top of either.
     private var userBubbleBackground: Color {
-        let fill = colorScheme == .dark ? Color(.systemGray3) : Color(.systemGray6)
+        let fill = MessageBubbleColor.color(for: messageColorHex)
+            ?? (colorScheme == .dark ? Color(.systemGray3) : Color(.systemGray6))
         return isQueued ? fill.mix(with: Color(.systemBackground), by: 0.45) : fill
     }
 
     private var userBubbleForeground: Color {
-        Color(.label)
+        MessageBubbleColor.color(for: messageColorHex) != nil
+            ? MessageBubbleColor.foreground(for: messageColorHex)
+            : Color(.label)
     }
 
     private var userBubbleBorder: Color {

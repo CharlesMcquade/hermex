@@ -512,7 +512,12 @@ struct ServerIdentityEditor: View {
 
             SettingsDivider()
 
-            HeaderLogoColorSettings(selectedHex: $colorHex, customColor: colorBinding)
+            HeaderLogoColorSettings(
+                title: String(localized: "Color"),
+                presetAccessibilityNoun: "server color",
+                presetAccessibilityHint: String(localized: "Updates this server's color."),
+                selectedHex: $colorHex,
+                customColor: colorBinding)
         }
     }
 }

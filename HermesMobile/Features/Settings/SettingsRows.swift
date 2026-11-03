@@ -152,7 +152,14 @@ struct SettingsTextFieldRow: View {
     }
 }
 
+/// The shared swatch-grid color picker. On the Appearance page it edits the
+/// global app color (the Verity logotype and, optionally, primary actions);
+/// the add/edit-server identity editor reuses it for a server's avatar color,
+/// so the title and accessibility wording are parameterized.
 struct HeaderLogoColorSettings: View {
+    var title: String = String(localized: "App Color")
+    var presetAccessibilityNoun: String = "app color"
+    var presetAccessibilityHint: String = String(localized: "Updates the app color.")
     @Binding var selectedHex: String
     let customColor: Binding<Color>
 
@@ -163,7 +170,7 @@ struct HeaderLogoColorSettings: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
-                Text("Header Logo Color")
+                Text(title)
                     .foregroundStyle(.primary)
 
                 Spacer(minLength: 12)
@@ -190,7 +197,9 @@ struct HeaderLogoColorSettings: View {
                 ForEach(HeaderLogoColor.presets) { preset in
                     HeaderLogoColorPresetButton(
                         preset: preset,
-                        isSelected: HeaderLogoColor.normalizedHex(selectedHex) == preset.hex
+                        isSelected: HeaderLogoColor.normalizedHex(selectedHex) == preset.hex,
+                        accessibilityNoun: presetAccessibilityNoun,
+                        accessibilityHint: presetAccessibilityHint
                     ) {
                         selectedHex = preset.hex
                     }
@@ -206,6 +215,8 @@ struct HeaderLogoColorSettings: View {
 private struct HeaderLogoColorPresetButton: View {
     let preset: HeaderLogoColorPreset
     let isSelected: Bool
+    let accessibilityNoun: String
+    let accessibilityHint: String
     let action: () -> Void
 
     var body: some View {
@@ -227,8 +238,108 @@ private struct HeaderLogoColorPresetButton: View {
             .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(String(localized: "\(preset.name) header logo color"))
+        .accessibilityLabel(Text(verbatim: "\(preset.name) \(accessibilityNoun)"))
         .accessibilityValue(isSelected ? "Selected" : "")
-        .accessibilityHint("Updates the Sessions header logo color.")
+        .accessibilityHint(accessibilityHint)
+    }
+}
+
+/// Settings → Appearance "Message Color": presets + custom picker for the
+/// sent-message bubble, with a Default swatch that restores the system look
+/// and a live sample bubble so the fill and its auto-contrasted text read
+/// before committing.
+struct MessageBubbleColorSettings: View {
+    @Binding var selectedHex: String
+    let customColor: Binding<Color>
+
+    private var selectedColorName: String {
+        selectedHex.isEmpty
+            ? String(localized: "Default")
+            : HeaderLogoColor.displayName(for: selectedHex)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Text("Message Color")
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 12)
+
+                Text(selectedColorName)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            .font(.subheadline)
+
+            bubblePreview
+                .accessibilityHidden(true)
+
+            HStack(spacing: 10) {
+                defaultButton
+
+                ForEach(MessageBubbleColor.presets) { preset in
+                    HeaderLogoColorPresetButton(
+                        preset: preset,
+                        isSelected: HeaderLogoColor.normalizedHex(selectedHex) == preset.hex,
+                        accessibilityNoun: "message color",
+                        accessibilityHint: String(localized: "Updates the message color.")
+                    ) {
+                        selectedHex = preset.hex
+                    }
+                }
+            }
+
+            ColorPicker("Custom", selection: customColor, supportsOpacity: false)
+                .font(.subheadline)
+        }
+    }
+
+    /// A sample sent bubble in the current choice, trailing-aligned the way a
+    /// real one sits in the transcript.
+    private var bubblePreview: some View {
+        let tint = MessageBubbleColor.color(for: selectedHex)
+        let fill = tint ?? Color(.systemGray3)
+        let foreground = tint == nil
+            ? Color(.label)
+            : MessageBubbleColor.foreground(for: selectedHex)
+        return HStack {
+            Spacer()
+            Text("Sent", comment: "Sample text in the message-color preview bubble")
+                .font(.subheadline)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(fill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .foregroundStyle(foreground)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    /// The system-look swatch: clearing the stored hex returns to the default
+    /// gray bubble, so the choice is reversible without the custom picker.
+    private var defaultButton: some View {
+        Button {
+            selectedHex = ""
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color(.systemGray3))
+                    .overlay(Circle().stroke(Color.primary.opacity(0.18), lineWidth: 1))
+
+                if selectedHex.isEmpty {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(width: 34, height: 34)
+            .frame(width: 44, height: 44)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(verbatim: "Default message color"))
+        .accessibilityValue(selectedHex.isEmpty ? "Selected" : "")
+        .accessibilityHint(String(localized: "Restores the system bubble."))
     }
 }

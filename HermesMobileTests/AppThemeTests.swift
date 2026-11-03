@@ -20,6 +20,29 @@ final class AppThemeTests: XCTestCase {
         XCTAssertEqual(HeaderLogoColor.hexString(red: -0.2, green: 1.2, blue: 0), "#00FF00")
     }
 
+    func testMessageBubbleColorStorageKeyIsStable() {
+        XCTAssertEqual(MessageBubbleColor.storageKey, "chatUserBubbleColorHex")
+    }
+
+    func testMessageBubbleColorEmptyStoredValueKeepsSystemBubble() {
+        XCTAssertNil(MessageBubbleColor.color(for: ""))
+    }
+
+    func testMessageBubbleColorResolvesStoredHexAndShipsEmberPreset() {
+        XCTAssertNotNil(MessageBubbleColor.color(for: "#FF8A1E"))
+        XCTAssertTrue(MessageBubbleColor.presets.contains { $0.hex == "#FF8A1E" })
+    }
+
+    func testMessageBubbleColorForegroundAutoContrastsWithFillLightness() {
+        // Light fills (Silver, Gold) take dark text; dark fills (Oxblood) take light text.
+        XCTAssertEqual(
+            MessageBubbleColor.foreground(for: "#C9D1D9"),
+            MessageBubbleColor.foreground(for: "#FFD700"))
+        XCTAssertNotEqual(
+            MessageBubbleColor.foreground(for: "#C9D1D9"),
+            MessageBubbleColor.foreground(for: "#8E3B3B"))
+    }
+
     func testSessionIdentityInitialsPreferStoredValueThenDisplayName() {
         XCTAssertEqual(
             SessionIdentitySettings.displayInitials(
