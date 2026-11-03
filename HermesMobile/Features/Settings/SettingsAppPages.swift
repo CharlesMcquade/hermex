@@ -2,25 +2,17 @@ import SwiftUI
 
 // The Hermex pages on the Settings index (#1252). Each applies on this iPhone to every server.
 
-/// Theme, app color, the primary-button tint, message color, and the app icon.
-/// The per-server avatar color stays on the server's page.
+/// Theme, app color, the primary-button tint, and the app icon. The per-server
+/// avatar color stays on the server's page.
 struct SettingsAppearancePage: View {
     @AppStorage(AppTheme.storageKey) private var appThemeRawValue = AppTheme.system.rawValue
     @AppStorage(PrimaryActionTintSettings.isEnabledKey) private var tintsPrimaryActions = false
     @AppStorage(HeaderLogoColor.storageKey) private var appColorHex = HeaderLogoColor.defaultHex
-    @AppStorage(MessageBubbleColor.storageKey) private var messageColorHex = ""
 
     private var appColorBinding: Binding<Color> {
         Binding(
             get: { HeaderLogoColor.color(for: appColorHex) },
             set: { if let hex = HeaderLogoColor.hexString(from: $0) { appColorHex = hex } }
-        )
-    }
-
-    private var messageColorBinding: Binding<Color> {
-        Binding(
-            get: { MessageBubbleColor.color(for: messageColorHex) ?? MessageBubbleColor.presets[0].color },
-            set: { if let hex = HeaderLogoColor.hexString(from: $0) { messageColorHex = hex } }
         )
     }
 
@@ -38,12 +30,10 @@ struct SettingsAppearancePage: View {
                 HeaderLogoColorSettings(selectedHex: $appColorHex, customColor: appColorBinding)
 
                 Toggle(isOn: $tintsPrimaryActions) {
-                    SettingsLabel(title: String(localized: "Tint New Chat & Send"), systemImage: "paintbrush.pointed")
+                    SettingsLabel(
+                        title: String(localized: "Tint New Chat, Send & Messages"),
+                        systemImage: "paintbrush.pointed")
                 }
-            }
-
-            Section(footer: Text("Sent-message bubbles. Default keeps the system look.")) {
-                MessageBubbleColorSettings(selectedHex: $messageColorHex, customColor: messageColorBinding)
             }
 
             Section {

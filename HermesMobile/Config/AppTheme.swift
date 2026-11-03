@@ -187,39 +187,6 @@ enum PrimaryActionTintSettings {
     }
 }
 
-/// Settings → Appearance "Message Color": the sent-message bubble's fill. An
-/// empty stored value (the default) keeps the system-gray bubble; a stored hex
-/// tints every sent bubble, with its text auto-contrasted for legibility.
-/// Purely a display preference, like the theme color it sits beside.
-enum MessageBubbleColor {
-    static let storageKey = "chatUserBubbleColorHex"
-
-    /// Curated fills in Verity's register. Reuses the logo-color preset struct:
-    /// name + hex + resolved Color.
-    static let presets: [HeaderLogoColorPreset] = [
-        HeaderLogoColorPreset(name: String(localized: "Ember"), hex: "#FF8A1E"),
-        HeaderLogoColorPreset(name: String(localized: "Steel"), hex: "#5B7CFF"),
-        HeaderLogoColorPreset(name: String(localized: "Moss"), hex: "#3E7C4F"),
-        HeaderLogoColorPreset(name: String(localized: "Oxblood"), hex: "#8E3B3B"),
-        HeaderLogoColorPreset(name: String(localized: "Silver"), hex: "#C9D1D9"),
-        HeaderLogoColorPreset(name: String(localized: "Gold"), hex: "#FFD700")
-    ]
-
-    /// The bubble fill for a stored hex, or nil to keep the system bubble.
-    static func color(for storedHex: String) -> Color? {
-        guard !storedHex.isEmpty else { return nil }
-        return HeaderLogoColor.color(for: storedHex)
-    }
-
-    /// Text drawn on a tinted bubble: near-black on light fills, near-white on
-    /// dark ones, so a pastel or a deep fill both stay readable.
-    static func foreground(for storedHex: String) -> Color {
-        HeaderLogoColor.prefersDarkForeground(for: storedHex)
-            ? Color(red: 0.09, green: 0.09, blue: 0.10)
-            : Color(red: 0.98, green: 0.98, blue: 0.99)
-    }
-}
-
 enum AppHaptics {
     static let isEnabledKey = "appHaptics.isEnabled"
     /// Opt-in selection tick while assistant text streams. Off by default and

@@ -19,7 +19,8 @@ struct MessageBubbleView: View {
     @Environment(\.chatWorkspaceRoot) private var chatWorkspaceRoot
     @AppStorage(ChatTranscriptDisplaySettings.hidesAttachmentPathsKey) private var hidesAttachmentPaths = true
     @AppStorage(ChatTranscriptDisplaySettings.showsResponseSpeedKey) private var showsResponseSpeed = false
-    @AppStorage(MessageBubbleColor.storageKey) private var messageColorHex = ""
+    @AppStorage(PrimaryActionTintSettings.isEnabledKey) private var tintsPrimaryActions = false
+    @AppStorage(HeaderLogoColor.storageKey) private var themeColorHex = HeaderLogoColor.defaultHex
 
     /// Bot snapshots are text-only and must render synchronously while growing.
     let textOnly: Bool
@@ -646,24 +647,27 @@ struct MessageBubbleView: View {
     }
 
     /// Opaque even when queued, which mixes it toward the transcript's background, so the
-    /// fold's gradient still hides the text under it. A stored Message Color replaces the
-    /// system gray; the queued dim still applies on top of either.
+    /// fold's gradient still hides the text under it. With the primary-action tint on, the
+    /// bubble washes with the theme color the same way the steer hint does — a translucent
+    /// tint over the transcript, so `.label` text stays readable on either appearance.
     private var userBubbleBackground: Color {
-        let fill = MessageBubbleColor.color(for: messageColorHex)
-            ?? (colorScheme == .dark ? Color(.systemGray3) : Color(.systemGray6))
-        return isQueued ? fill.mix(with: Color(.systemBackground), by: 0.45) : fill
+        let base = tintsPrimaryActions
+            ? HeaderLogoColor.color(for: themeColorHex).opacity(colorScheme == .dark ? 0.28 : 0.16)
+            : (colorScheme == .dark ? Color(.systemGray3) : Color(.systemGray6))
+        return isQueued ? base.mix(with: Color(.systemBackground), by: 0.45) : base
     }
 
     private var userBubbleForeground: Color {
-        MessageBubbleColor.color(for: messageColorHex) != nil
-            ? MessageBubbleColor.foreground(for: messageColorHex)
-            : Color(.label)
+        Color(.label)
     }
 
     private var userBubbleBorder: Color {
-        colorScheme == .dark
-            ? Color.white.opacity(0.08)
-            : Color.black.opacity(0.04)
+        guard tintsPrimaryActions else {
+            return colorScheme == .dark
+                ? Color.white.opacity(0.08)
+                : Color.black.opacity(0.04)
+        }
+        return HeaderLogoColor.color(for: themeColorHex).opacity(colorScheme == .dark ? 0.5 : 0.35)
     }
 
     private var messageText: String {
