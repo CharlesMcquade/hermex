@@ -11,6 +11,9 @@ struct ToolCall: Identifiable, Equatable {
     var isError: Bool?
     var isCompleted: Bool
     let startedAt: Double
+    /// How many characters of the streaming reply preceded this tool when it started.
+    /// Lets a live reply draw its text and tools in the order they ran; nil outside a stream.
+    var textOffset: Int?
 
     init(
         id: String = "live-tool-\(UUID().uuidString)",
@@ -21,7 +24,8 @@ struct ToolCall: Identifiable, Equatable {
         duration: Double? = nil,
         isError: Bool? = nil,
         isCompleted: Bool = false,
-        startedAt: Double = Date().timeIntervalSince1970
+        startedAt: Double = Date().timeIntervalSince1970,
+        textOffset: Int? = nil
     ) {
         self.id = id
         self.presentationID = presentationID ?? id
@@ -32,6 +36,7 @@ struct ToolCall: Identifiable, Equatable {
         self.isError = isError
         self.isCompleted = isCompleted
         self.startedAt = startedAt
+        self.textOffset = textOffset
     }
 
     var displayName: String {
@@ -141,6 +146,34 @@ struct ToolCallGroup: Identifiable, Equatable {
 
     var hasFailedTool: Bool {
         toolCalls.contains { $0.isError == true }
+    }
+
+    /// Cuts a streaming reply at the points its live tools started, so text and tools draw
+    /// in the order they ran. Each segment is the text before a batch of tools, then that
+    /// batch; the last segment holds the trailing text and no tools. Tools without an offset
+    /// (or with one past the received text) go after the text received so far.
+    static func liveReplySegments(content: String, toolCalls: [ToolCall]) -> [LiveReplySegment] {
+        let characters = Array(content)
+        var segments: [LiveReplySegment] = []
+        var cursor = 0
+        var batch: [ToolCall] = []
+        var batchOffset = 0
+        func closeBatch() {
+            guard !batch.isEmpty else { return }
+            let text = String(characters[cursor..<batchOffset])
+            segments.append(LiveReplySegment(index: segments.count, text: text, toolCalls: batch))
+            cursor = batchOffset
+            batch = []
+        }
+        for toolCall in toolCalls {
+            let offset = min(max(toolCall.textOffset ?? characters.count, cursor), characters.count)
+            if !batch.isEmpty, offset != batchOffset { closeBatch() }
+            if batch.isEmpty { batchOffset = offset }
+            batch.append(toolCall)
+        }
+        closeBatch()
+        segments.append(LiveReplySegment(index: segments.count, text: String(characters[cursor...]), toolCalls: []))
+        return segments
     }
 
     static func live(anchorMessageID: String?, toolCalls: [ToolCall]) -> ToolCallGroup {
@@ -780,4 +813,12 @@ private extension JSONValue {
 
         return String(data: data, encoding: .utf8)
     }
+}
+
+/// One stretch of a streaming reply: the text before a batch of tools, then the batch.
+struct LiveReplySegment: Equatable, Identifiable {
+    let index: Int
+    let text: String
+    let toolCalls: [ToolCall]
+    var id: Int { index }
 }

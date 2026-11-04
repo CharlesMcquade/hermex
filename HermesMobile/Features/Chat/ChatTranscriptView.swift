@@ -813,7 +813,7 @@ struct ChatTranscriptMessageBlock: View, Equatable {
                         reasoningBlocks
                         liveReasoningBlock
                         if !toolsFollowBubble { toolActivityGroups }
-                        liveToolActivityGroup
+                        if liveReplySegments == nil { liveToolActivityGroup }
                     }
                     .transition(foldTransition)
                 } else if !foldedQuestions.isEmpty {
@@ -825,7 +825,12 @@ struct ChatTranscriptMessageBlock: View, Equatable {
                     .transition(foldTransition)
                 }
 
-                if showsBubble {
+                if let liveReplySegments {
+                    // A streaming reply draws text and tools in the order they ran.
+                    ForEach(liveReplySegments) { segment in
+                        liveReplySegment(segment, isLast: segment.index == liveReplySegments.count - 1)
+                    }
+                } else if showsBubble {
                     messageRow
                         .transition(foldTransition)
                 }
@@ -881,10 +886,70 @@ struct ChatTranscriptMessageBlock: View, Equatable {
         foldState?.fold != nil || (showsActivity && rendersActivity) || showsBubble
     }
 
+    /// The streaming reply cut at its live tools' start points; nil when it isn't
+    /// streaming, has no live tools, or tools group per turn.
+    private var liveReplySegments: [LiveReplySegment]? {
+        guard toolsFollowBubble,
+              showsBubble,
+              shouldRenderLiveToolActivityGroup,
+              let streamingAssistantMessageID,
+              transcriptMessage.message.messageId == streamingAssistantMessageID,
+              liveToolCalls.contains(where: { $0.textOffset != nil })
+        else { return nil }
+        return ToolCallGroup.liveReplySegments(
+            content: transcriptMessage.message.content ?? "",
+            toolCalls: liveToolCalls
+        )
+    }
+
+    @ViewBuilder
+    private func liveReplySegment(_ segment: LiveReplySegment, isLast: Bool) -> some View {
+        let message = transcriptMessage.message
+        if isLast {
+            // The live end of the reply keeps the real row: streaming, actions, copy.
+            if !segment.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                messageRow(message.replacingContent(segment.text))
+            }
+        } else {
+            if !segment.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                // Settled text: its own identity and equatable, so new tokens below it
+                // don't re-render its Markdown.
+                SettledReplyText(
+                    message: message.replacingContent(
+                        segment.text.trimmingCharacters(in: .whitespacesAndNewlines),
+                        messageId: "\(message.messageId ?? message.id)-segment-\(segment.index)"
+                    ),
+                    loadTranscriptMediaImage: loadTranscriptMediaImage,
+                    loadTranscriptMediaData: loadTranscriptMediaData,
+                    transcriptMediaCacheNamespace: transcriptMediaCacheNamespace,
+                    onPreviewAttachment: onPreviewAttachment,
+                    onPreviewTranscriptMedia: onPreviewTranscriptMedia,
+                    onAskHermex: onAskHermex,
+                    loadAttachmentImage: loadAttachmentImage
+                )
+                .equatable()
+            }
+            ToolActivityGroupView(
+                group: ToolCallGroup(
+                    id: "live-tools-\(toolCallAnchorMessageID ?? "unanchored")-\(segment.index)",
+                    anchorMessageID: toolCallAnchorMessageID,
+                    toolCalls: segment.toolCalls
+                ),
+                isLive: true,
+                isReplaying: isReplayingLiveToolCalls
+            )
+        }
+    }
+
     private var messageRow: some View {
+        messageRow(transcriptMessage.message)
+    }
+
+    private func messageRow(_ message: ChatMessage) -> some View {
                 ChatTranscriptMessageRow(
-                    message: transcriptMessage.message,
+                    message: message,
                     visibleIndex: transcriptMessage.loadedIndex,
+                    // Actions read the whole message, even when this row draws one stretch of it.
                     actionContext: actionContext(transcriptMessage.message, transcriptMessage.loadedIndex),
                     isTerminalReply: isTerminalReply,
                     localAttachmentPreviews: localAttachmentPreviews,
@@ -973,6 +1038,41 @@ struct ChatTranscriptMessageBlock: View, Equatable {
             showsThinkingAndToolCards &&
             toolCallAnchorMessageID == transcriptMessage.anchorID &&
             !liveToolCalls.isEmpty
+    }
+}
+
+/// A finished stretch of a streaming reply, drawn above the tools it led into. Compares
+/// on its message only, so later tokens skip re-rendering it.
+private struct SettledReplyText: View, Equatable {
+    let message: ChatMessage
+    let loadTranscriptMediaImage: (TranscriptMediaReference) async -> Data?
+    let loadTranscriptMediaData: (TranscriptMediaReference) async -> Data?
+    let transcriptMediaCacheNamespace: String
+    let onPreviewAttachment: (MessageAttachmentPreview, [MessageAttachmentPreview]) -> Void
+    let onPreviewTranscriptMedia: (TranscriptMediaReference, [TranscriptMediaReference]) -> Void
+    let onAskHermex: (String) -> Void
+    let loadAttachmentImage: (String) async -> Data?
+
+    static func == (lhs: SettledReplyText, rhs: SettledReplyText) -> Bool {
+        lhs.message == rhs.message && lhs.transcriptMediaCacheNamespace == rhs.transcriptMediaCacheNamespace
+    }
+
+    var body: some View {
+        MessageBubbleView(
+            message: message,
+            loadAttachmentImage: loadAttachmentImage,
+            attachmentAudio: nil,
+            loadTranscriptMediaImage: loadTranscriptMediaImage,
+            loadTranscriptMediaData: loadTranscriptMediaData,
+            transcriptMediaCacheNamespace: transcriptMediaCacheNamespace,
+            localAttachmentPreviews: nil,
+            onPreviewAttachment: onPreviewAttachment,
+            onPreviewTranscriptMedia: onPreviewTranscriptMedia,
+            isStreaming: false,
+            liveTokensPerSecond: nil,
+            onAskHermex: onAskHermex,
+            contextMenuActions: []
+        )
     }
 }
 

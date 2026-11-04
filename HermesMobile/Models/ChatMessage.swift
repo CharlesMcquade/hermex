@@ -73,6 +73,18 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
         self.isCompacted = isCompacted
     }
 
+    /// This message with other text, keeping its identity and metadata. A streaming reply
+    /// split around its tools draws its last stretch this way.
+    func replacingContent(_ content: String, messageId: String? = nil) -> ChatMessage {
+        ChatMessage(
+            role: role, content: content, timestamp: timestamp, messageId: messageId ?? self.messageId,
+            name: name, toolCallId: toolCallId, toolUseId: toolUseId, toolCalls: toolCalls,
+            contentParts: contentParts, reasoning: reasoning, attachments: attachments,
+            displayKind: displayKind, displayMetadata: displayMetadata, turnTps: turnTps,
+            turnDuration: turnDuration, rowID: rowID, isCompacted: isCompacted
+        )
+    }
+
     enum CodingKeys: String, CodingKey {
         case role
         case content

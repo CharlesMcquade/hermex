@@ -559,6 +559,20 @@ final class APIClientSessionDetailTests: APIClientTestCase {
         XCTAssertEqual(groups[1].toolCalls.first?.name, "terminal")
     }
 
+    func testStreamingReplySplitsAtTheToolsItRan() {
+        let content = "Reading first. Now running it. Done."
+        let tools = [
+            ToolCall(id: "t1", name: "read_file", preview: nil, args: nil, textOffset: 15),
+            ToolCall(id: "t2", name: "search", preview: nil, args: nil, textOffset: 15),
+            ToolCall(id: "t3", name: "terminal", preview: nil, args: nil, textOffset: 31)
+        ]
+
+        let segments = ToolCallGroup.liveReplySegments(content: content, toolCalls: tools)
+
+        XCTAssertEqual(segments.map(\.text), ["Reading first. ", "Now running it. ", "Done."])
+        XCTAssertEqual(segments.map { $0.toolCalls.map(\.id) }, [["t1", "t2"], ["t3"], []])
+    }
+
     func testInOrderToolCallsStayWithTheMessageThatCalledThem() {
         let messages = [
             ChatMessage(role: "user", content: "Inspect", timestamp: 1, messageId: "user-a"),

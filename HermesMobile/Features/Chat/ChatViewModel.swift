@@ -7087,6 +7087,13 @@ final class ChatViewModel {
     }
 
     @discardableResult
+    /// The streaming reply's length as received so far: shown text plus text the reveal
+    /// gate still holds.
+    private func streamingReplyLength(messageID: String) -> Int {
+        let shown = messages.last(where: { $0.messageId == messageID })?.content ?? ""
+        return shown.count + pendingAssistantText.count
+    }
+
     private func ensureStreamingAssistantMessage() -> String {
         if let streamingAssistantMessageID {
             return streamingAssistantMessageID
@@ -7172,7 +7179,8 @@ final class ChatViewModel {
                 id: payload.stableID ?? "live-tool-\(UUID().uuidString)",
                 name: payload.name,
                 preview: payload.preview,
-                args: payload.args
+                args: payload.args,
+                textOffset: streamingReplyLength(messageID: messageID)
             )
         )
         scheduleStreamingScrollTrigger()
@@ -7213,7 +7221,8 @@ final class ChatViewModel {
                     args: payload.args,
                     duration: payload.duration,
                     isError: payload.isError,
-                    isCompleted: true
+                    isCompleted: true,
+                    textOffset: streamingReplyLength(messageID: messageID)
                 )
             )
             scheduleStreamingScrollTrigger()
@@ -9262,7 +9271,8 @@ private extension ToolCall {
             duration: payload.duration,
             isError: payload.isError,
             isCompleted: true,
-            startedAt: startedAt
+            startedAt: startedAt,
+            textOffset: textOffset
         )
     }
 }
