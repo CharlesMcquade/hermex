@@ -559,7 +559,27 @@ final class APIClientSessionDetailTests: APIClientTestCase {
         XCTAssertEqual(groups[1].toolCalls.first?.name, "terminal")
     }
 
+    func testInOrderToolCallsStayWithTheMessageThatCalledThem() {
+        let messages = [
+            ChatMessage(role: "user", content: "Inspect", timestamp: 1, messageId: "user-a"),
+            ChatMessage(role: "assistant", content: "Reading first", timestamp: 2, messageId: "assistant-a"),
+            ChatMessage(role: "assistant", content: "Now running it", timestamp: 3, messageId: "assistant-b"),
+            ChatMessage(role: "assistant", content: "Done", timestamp: 4, messageId: "assistant-c")
+        ]
+        let persisted = [
+            PersistedToolCall(name: "read_file", snippet: "ok", tid: "t1", assistantMsgIdx: 1, args: nil),
+            PersistedToolCall(name: "terminal", snippet: "ok", tid: "t2", assistantMsgIdx: 2, args: nil)
+        ]
+
+        let groups = ToolCallGroup.groups(persistedToolCalls: persisted, messages: messages, messageOffset: nil)
+
+        XCTAssertEqual(groups.map(\.anchorMessageID), ["assistant-a", "assistant-b"])
+        XCTAssertEqual(groups.map { $0.toolCalls.map(\.id) }, [["t1"], ["t2"]])
+    }
+
     func testPersistedToolCallsCoalesceConsecutiveAssistantSegmentsInOneTurn() {
+        UserDefaults.standard.set(true, forKey: ChatTranscriptDisplaySettings.groupsToolCallsByTurnKey)
+        defer { UserDefaults.standard.removeObject(forKey: ChatTranscriptDisplaySettings.groupsToolCallsByTurnKey) }
         let messages = [
             ChatMessage(
                 role: "user",
@@ -804,6 +824,8 @@ final class APIClientSessionDetailTests: APIClientTestCase {
     }
 
     func testAnthropicToolUseSnapshotsCoalesceIntoOneTurnActivity() {
+        UserDefaults.standard.set(true, forKey: ChatTranscriptDisplaySettings.groupsToolCallsByTurnKey)
+        defer { UserDefaults.standard.removeObject(forKey: ChatTranscriptDisplaySettings.groupsToolCallsByTurnKey) }
         let messages = [
             ChatMessage(
                 role: "user",
@@ -1172,6 +1194,8 @@ final class APIClientSessionDetailTests: APIClientTestCase {
     }
 
     func testOpenAIToolRowsWithNilMessageIDsUseRawIndexAnchors() {
+        UserDefaults.standard.set(true, forKey: ChatTranscriptDisplaySettings.groupsToolCallsByTurnKey)
+        defer { UserDefaults.standard.removeObject(forKey: ChatTranscriptDisplaySettings.groupsToolCallsByTurnKey) }
         let finalAnswer = "Both tools are operational."
         let messages = [
             ChatMessage(

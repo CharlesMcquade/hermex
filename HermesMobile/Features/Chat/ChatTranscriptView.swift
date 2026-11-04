@@ -806,7 +806,7 @@ struct ChatTranscriptMessageBlock: View, Equatable {
                     Group {
                         reasoningBlocks
                         liveReasoningBlock
-                        toolActivityGroups
+                        if !toolsFollowBubble { toolActivityGroups }
                         liveToolActivityGroup
                     }
                     .transition(foldTransition)
@@ -823,6 +823,13 @@ struct ChatTranscriptMessageBlock: View, Equatable {
                     messageRow
                         .transition(foldTransition)
                 }
+
+                // In order (the default), a message's tools run after the text that
+                // announced them.
+                if showsActivity, toolsFollowBubble {
+                    toolActivityGroups
+                        .transition(foldTransition)
+                }
             }
         }
     }
@@ -835,6 +842,10 @@ struct ChatTranscriptMessageBlock: View, Equatable {
 
     private var showsActivity: Bool {
         foldState?.hidesActivity != true
+    }
+
+    private var toolsFollowBubble: Bool {
+        !ChatTranscriptDisplaySettings.groupsToolCallsByTurn
     }
 
     private var showsBubble: Bool {

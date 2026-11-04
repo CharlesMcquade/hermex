@@ -3399,6 +3399,8 @@ final class ChatViewModelSendTests: XCTestCase {
 
     @MainActor
     func testCompletedStreamSessionMergesLiveFallbackIntoCompletedTurnActivity() async throws {
+        UserDefaults.standard.set(true, forKey: ChatTranscriptDisplaySettings.groupsToolCallsByTurnKey)
+        defer { UserDefaults.standard.removeObject(forKey: ChatTranscriptDisplaySettings.groupsToolCallsByTurnKey) }
         let streamClient = SpySSEStreamingClient()
         let viewModel = try makeViewModel(streamClient: streamClient, handler: routes(["/api/chat/start": chatStarted()]))
 

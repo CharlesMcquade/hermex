@@ -270,14 +270,15 @@ struct ToolCallGroup: Identifiable, Equatable {
 
             guard !toolCalls.isEmpty else { continue }
 
-            if currentAnchorMessageID == nil {
-                currentAnchorMessageID = TranscriptTurnClassifier.anchorID(
-                    for: message,
-                    at: messageIndex,
-                    messageOffset: messageOffset
-                )
-            }
-            currentToolCalls += toolCalls
+            // One group per assistant message, so each message's tools can follow its
+            // text; `coalescingByAssistantTurn` merges them back when grouping by turn.
+            flushCurrentGroup()
+            currentAnchorMessageID = TranscriptTurnClassifier.anchorID(
+                for: message,
+                at: messageIndex,
+                messageOffset: messageOffset
+            )
+            currentToolCalls = toolCalls
         }
 
         flushCurrentGroup()
@@ -487,9 +488,10 @@ struct ToolCallGroup: Identifiable, Equatable {
     static func coalescingByAssistantTurn(
         _ groups: [ToolCallGroup],
         messages: [ChatMessage],
-        messageOffset: Int? = nil
+        messageOffset: Int? = nil,
+        groupsByTurn: Bool = ChatTranscriptDisplaySettings.groupsToolCallsByTurn
     ) -> [ToolCallGroup] {
-        guard groups.count > 1 else {
+        guard groupsByTurn, groups.count > 1 else {
             return groups.map { group in
                 ToolCallGroup(
                     id: group.id,

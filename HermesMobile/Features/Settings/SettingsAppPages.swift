@@ -104,6 +104,7 @@ struct SettingsComposerPage: View {
 struct SettingsChatPage: View {
     @AppStorage(ChatTranscriptDisplaySettings.thinkingAndToolCardsKey) private var thinkingAndToolCards = ThinkingAndToolCards.collapsed
     @AppStorage(ChatTranscriptDisplaySettings.foldsSettledTurnsKey) private var foldsSettledTurns = true
+    @AppStorage(ChatTranscriptDisplaySettings.groupsToolCallsByTurnKey) private var groupsToolCallsByTurn = false
     @AppStorage(SessionChatPreferences.completionPositionKey) private var completionPositionRawValue = SessionChatPreferences.CompletionPosition.latest.rawValue
     @AppStorage(ChatTranscriptDisplaySettings.showsAssistantTurnTimestampsKey) private var showsAssistantTurnTimestamps = ChatTranscriptDisplaySettings.defaultShowsTimestamps
     @AppStorage(ChatTranscriptDisplaySettings.showsResponseSpeedKey) private var showsResponseSpeed = false
@@ -120,6 +121,14 @@ struct SettingsChatPage: View {
                     }
                 } label: {
                     SettingsLabel(title: String(localized: "Thinking & Tools"), systemImage: "brain.head.profile")
+                }
+
+                Toggle(isOn: $groupsToolCallsByTurn) {
+                    SettingsLabel(
+                        title: String(localized: "Group Tools per Turn"),
+                        systemImage: "square.stack",
+                        note: String(localized: "Shows a turn's tools in one group instead of in the order they ran. Applies when a chat next loads.")
+                    )
                 }
 
                 Toggle(isOn: $foldsSettledTurns) {

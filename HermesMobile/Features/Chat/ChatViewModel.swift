@@ -6992,7 +6992,11 @@ final class ChatViewModel {
                 messages: messages,
                 messageOffset: messagesOffset
             )
-            if !liveToolCalls.isEmpty {
+            // In order, the finished transcript already places each tool under the message
+            // that called it; folding the live list into the turn's first message would
+            // repeat them there. Keep the live list only when the server returned none.
+            if !liveToolCalls.isEmpty,
+               ChatTranscriptDisplaySettings.groupsToolCallsByTurn || rebuiltToolCallGroups.isEmpty {
                 let fallbackAnchorMessageID = currentTurnToolCallFallbackAnchorMessageID()
                 setCompletedToolCallGroups(ToolCallGroup.coalescingByAssistantTurn(
                     ToolCallGroup.merging(

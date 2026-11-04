@@ -226,6 +226,15 @@ enum ThinkingAndToolCards: String, CaseIterable, Identifiable {
 
 enum ChatTranscriptDisplaySettings {
     static let thinkingAndToolCardsKey = "chatTranscript.thinkingAndToolCards"
+    /// Off (the default) shows each assistant message's tool calls right after its text,
+    /// in the order the turn ran, like the WebUI's turn worklog. On keeps the older layout:
+    /// one activity pill per turn, above the turn's first reply. Read when a transcript is
+    /// grouped, so a change applies the next time a chat loads.
+    static let groupsToolCallsByTurnKey = "chatTranscript.groupsToolCallsByTurn"
+
+    static var groupsToolCallsByTurn: Bool {
+        UserDefaults.standard.bool(forKey: groupsToolCallsByTurnKey)
+    }
 
     /// The three toggles the Thinking & Tools picker replaced (#1254). Read only by
     /// `migrateThinkingAndToolCards`.
