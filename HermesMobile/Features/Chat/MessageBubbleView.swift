@@ -392,7 +392,8 @@ struct MessageBubbleView: View {
 
         return VStack(alignment: .leading, spacing: 6) {
             ComposerChipTextLine.text(text, tokens: chips, style: chipStyle)
-                .font(.body)
+                // The same size as the agent's text, so both scale together.
+                .font(.system(size: ChatTypography(dynamicTypeSize: dynamicTypeSize).bodySize))
                 .lineLimit(isFolded ? UserBubbleFoldPolicy.visibleLines : nil)
                 .textSelection(.enabled)
                 .overlay(alignment: .bottom) {
@@ -640,10 +641,7 @@ struct MessageBubbleView: View {
 
     /// The body font at this view's text size, for measuring the fold.
     private var userBubbleBodyFont: UIFont {
-        UIFont.preferredFont(
-            forTextStyle: .body,
-            compatibleWith: UITraitCollection(preferredContentSizeCategory: UIContentSizeCategory(dynamicTypeSize))
-        )
+        UIFont.systemFont(ofSize: ChatTypography(dynamicTypeSize: dynamicTypeSize).bodySize)
     }
 
     /// Opaque even when queued, which mixes it toward the transcript's background, so the

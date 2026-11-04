@@ -2396,8 +2396,8 @@ struct ChatView: View {
             if let snapshot = viewModel.contextWindowSnapshot, let percentage = snapshot.percentage {
                 Section {
                     Label {
-                        Text("Context \(Int(percentage * 100))%")
-                        Text(ContextWindowFormatter.tokensLabel(from: snapshot))
+                        Text("Context \(ContextWindowFormatter.tokensLabel(from: snapshot))")
+                        Text("\(Int(percentage * 100))% used")
                     } icon: { Image(systemName: "gauge.with.dots.needle.33percent") }
                 }
             }
@@ -2528,7 +2528,7 @@ struct ChatView: View {
                 UIPasteboard.general.string = context.copyText
                 ChatHaptics.copied(isEnabled: isHapticsEnabled)
             },
-            inlineCommitContext: inlineCommitContext,
+            inlineCommitContext: nil, // Verity: commits live in the rail's Git menu.
             onInlineCommit: {
                 Task { await performQuickCommit(push: true) }
             },
@@ -2672,7 +2672,7 @@ struct ChatView: View {
         if collapsesComposerToRail {
             return 16 + composerAccessorySpacerHeight + clarificationFootprintHeight
         }
-        return max(96, composerHeight + 44 + composerAccessorySpacerHeight + clarificationFootprintHeight)
+        return max(60, composerHeight + 12 + composerAccessorySpacerHeight + clarificationFootprintHeight)
     }
 
     private var scrollToBottomButtonBottomPadding: CGFloat {
@@ -4795,9 +4795,17 @@ struct ChatNavigationBackground: ViewModifier {
     let reduceTransparency: Bool
 
     func body(content: Content) -> some View {
-        content
-            .toolbarBackground(backgroundStyle, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+        // On iOS 26 and later the system's soft scroll edge blurs the transcript
+        // under the title, edge to edge with no band above it. An explicit bar
+        // background drew an opaque slab that stopped short of the top on the
+        // outer screen.
+        if #available(iOS 26, *), !reduceTransparency {
+            content
+        } else {
+            content
+                .toolbarBackground(backgroundStyle, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+        }
     }
 
     private var backgroundStyle: AnyShapeStyle {

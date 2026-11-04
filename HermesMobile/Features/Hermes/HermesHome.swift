@@ -106,6 +106,7 @@ struct HomeDrawerOverlay<Menu: View>: View {
     @ViewBuilder let menu: () -> Menu
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     /// Panel offset from its resting place while a finger drags it:
     /// negative toward closed when open, positive toward open when closed.
     @State private var dragTranslation: CGFloat = 0
@@ -134,13 +135,21 @@ struct HomeDrawerOverlay<Menu: View>: View {
         menu()
             .frame(width: HomeDrawerMetrics.panelWidth)
             .frame(maxHeight: .infinity, alignment: .top)
-            .background(Color(.systemBackground), ignoresSafeAreaEdges: .vertical)
+            // Lightly translucent, so the list blurs through behind the menu.
+            .background(
+                reduceTransparency ? AnyShapeStyle(Color(.systemBackground)) : AnyShapeStyle(.ultraThinMaterial),
+                ignoresSafeAreaEdges: .vertical
+            )
             .overlay(alignment: .trailing) {
                 Color(.separator).opacity(0.5).frame(width: 0.5)
                     .ignoresSafeArea(.container, edges: .vertical)
             }
             .shadow(color: .black.opacity(0.22), radius: 16, x: 6)
             .offset(x: isOpen ? dragTranslation : closedOffset + dragTranslation)
+            // Hidden when closed: with the side rail on the leading edge (outer screen
+            // held hinge-down), the safe area shifts the panel into view.
+            .opacity(isOpen || dragTranslation != 0 ? 1 : 0)
+            .ignoresSafeArea(.container, edges: .leading)
             .allowsHitTesting(isOpen)
             // Simultaneous, so the menu's own scroll view can't swallow a sideways swipe.
             .simultaneousGesture(swipeToClose, including: isOpen ? .all : .none)
@@ -216,7 +225,7 @@ struct HomeDrawerEntry: View {
         Button(action: action) {
             Label {
                 Text(title)
-                    .font(.body.weight(isActive ? .semibold : .regular))
+                    .font(.body.weight(isActive ? .bold : .regular))
                     .foregroundStyle(isActive ? Color.accentColor : Color.primary)
             } icon: {
                 Image(systemName: systemImage)
@@ -224,9 +233,11 @@ struct HomeDrawerEntry: View {
                     .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
                     .frame(width: 26)
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 12)
             .padding(.vertical, 11)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background { SidebarSelectionHighlight(isSelected: isActive) }
+            .padding(.horizontal, 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -237,11 +248,14 @@ struct HomeDrawerEntry: View {
 /// SwiftUI has no environment value for it, so a zero-size UIKit view reads the trait.
 struct VerticalBarPresenceReader: UIViewRepresentable {
     @Binding var isPresent: Bool
+    /// Set when the rail is on the leading edge (the outer screen held hinge-down).
+    var isLeading: Binding<Bool>? = nil
 
     func makeUIView(context: Context) -> ProbeView {
         let view = ProbeView()
-        view.onChange = { present in
+        view.onChange = { present, leading in
             if isPresent != present { isPresent = present }
+            if let isLeading, isLeading.wrappedValue != leading { isLeading.wrappedValue = leading }
         }
         return view
     }
@@ -249,8 +263,8 @@ struct VerticalBarPresenceReader: UIViewRepresentable {
     func updateUIView(_ uiView: ProbeView, context: Context) {}
 
     final class ProbeView: UIView {
-        var onChange: ((Bool) -> Void)?
-        private var last: Bool?
+        var onChange: ((Bool, Bool) -> Void)?
+        private var last: (Bool, Bool)?
 
         override func didMoveToWindow() { super.didMoveToWindow(); report() }
         override func layoutSubviews() { super.layoutSubviews(); report() }
@@ -259,33 +273,39 @@ struct VerticalBarPresenceReader: UIViewRepresentable {
         }
 
         private func report() {
-            var present = false
+            var present = false, leading = false
             if #available(iOS 27.1, *) {
-                present = (window?.traitCollection ?? traitCollection).verticalBarEdge != .unspecified
+                let edge = (window?.traitCollection ?? traitCollection).verticalBarEdge
+                present = edge != .unspecified
+                leading = edge == .leading
             }
-            guard present != last else { return }
-            last = present
-            DispatchQueue.main.async { [onChange] in onChange?(present) }
+            if let last, last == (present, leading) { return }
+            last = (present, leading)
+            DispatchQueue.main.async { [onChange] in onChange?(present, leading) }
         }
     }
 }
 
 extension View {
     /// Tracks the side rail's presence into `isPresent`.
-    func readsVerticalBarPresence(_ isPresent: Binding<Bool>) -> some View {
-        background(VerticalBarPresenceReader(isPresent: isPresent).frame(width: 0, height: 0).allowsHitTesting(false))
+    func readsVerticalBarPresence(_ isPresent: Binding<Bool>, isLeading: Binding<Bool>? = nil) -> some View {
+        background(VerticalBarPresenceReader(isPresent: isPresent, isLeading: isLeading).frame(width: 0, height: 0).allowsHitTesting(false))
     }
 
     /// The home's menu toggle and New chat as side-rail items, only while the rail shows.
     @ViewBuilder
-    func homeRailItems(isActive: Bool, toggleMenu: @escaping () -> Void, newChat: @escaping () -> Void) -> some View {
+    func homeRailItems(isActive: Bool, refreshKey: String? = nil, toggleMenu: @escaping () -> Void, newChat: @escaping () -> Void) -> some View {
         if #available(iOS 27.1, *), isActive {
             toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    // The rail drew blank after a project filter rebuilt the list;
+                    // new identity makes it lay the buttons out again.
                     Button(action: toggleMenu) { Image(systemName: "line.3.horizontal") }
                         .accessibilityLabel(Text("Menu"))
+                        .id("menu" + (refreshKey ?? ""))
                     Button(action: newChat) { Image(systemName: "plus") }
                         .accessibilityLabel(Text("New chat"))
+                        .id("new" + (refreshKey ?? ""))
                 }
                 .axisBehavior(.verticalPreferred)
             }

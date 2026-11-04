@@ -116,6 +116,9 @@ struct SessionListView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isShowingDrawer = false
     @State private var hasSideRail = false
+    /// The menu item shown as the compact home's root screen; nil is Sessions. A menu
+    /// pick replaces the root rather than pushing, so the menu stays one swipe away.
+    @State private var drawerRoot: SessionListUtilityDestination?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var viewModel: SessionListViewModel
@@ -582,9 +585,9 @@ struct SessionListView: View {
             }
         } else {
             NavigationStack {
-                sessionListSurface
+                compactRoot
                     .readsVerticalBarPresence($hasSideRail)
-                    .homeRailItems(isActive: hasSideRail, toggleMenu: { isShowingDrawer.toggle() }, newChat: { isShowingDrawer = false; openNewChat() })
+                    .homeRailItems(isActive: hasSideRail, refreshKey: selectedProjectID, toggleMenu: { isShowingDrawer.toggle() }, newChat: { isShowingDrawer = false; openNewChat() })
                     .navigationDestination(item: navigationDestinationBinding) { destination in
                         navigationDestination(destination)
                     }
@@ -605,6 +608,7 @@ struct SessionListView: View {
 
             content
 
+
             // The Undo toast sits 10 pt above the Chat button, as wide as the
             // column, and grows upward so the button never moves.
             VStack(alignment: .trailing, spacing: 10) {
@@ -621,10 +625,30 @@ struct SessionListView: View {
             }
             .padding(.horizontal, 24)
         }
-        .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer, isEnabled: horizontalSizeClass != .regular) { drawerMenu } }
         // The Move question waits for this list: hidden under a pushed chat or a closed sidebar.
         .onAppear { MoveToHermesNotices.shared.noteChatList(of: server.absoluteString, onScreen: true) }
         .onDisappear { MoveToHermesNotices.shared.noteChatList(of: server.absoluteString, onScreen: false) }
+    }
+
+    /// Sessions, or the menu item picked from the drawer, with the drawer over it.
+    private var compactRoot: some View {
+        Group {
+            if let drawerRoot {
+                utilityDestination(drawerRoot)
+                    .toolbar {
+                        if !hasSideRail {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button { isShowingDrawer = true } label: { Image(systemName: "line.3.horizontal") }
+                                    .accessibilityLabel(Text("Menu"))
+                            }
+                        }
+                    }
+                    .navigationBarBackButtonHidden(true)
+            } else {
+                sessionListSurface
+            }
+        }
+        .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer) { drawerMenu } }
     }
 
     @ViewBuilder
@@ -836,13 +860,18 @@ struct SessionListView: View {
             projectsAreExpanded: $projectsAreExpanded,
             selectedProjectID: Binding(
                 get: { selectedProjectID },
-                set: { selectedProjectID = $0; if closingDrawer { isShowingDrawer = false } }),
+                set: { selectedProjectID = $0; if closingDrawer { drawerRoot = nil; isShowingDrawer = false } }),
             projectPendingDeletion: $projectPendingDeletion,
             projectPendingRename: $projectPendingRename,
             openDestination: { destination in
-                if closingDrawer { isShowingDrawer = false }
-                selectDestination(destination)
+                if closingDrawer {
+                    isShowingDrawer = false
+                    drawerRoot = destination
+                } else {
+                    selectDestination(destination)
+                }
             },
+            selectedDestination: closingDrawer ? drawerRoot : nil,
             switchActiveProfile: { profile in
                 if closingDrawer { isShowingDrawer = false }
                 Task { await switchActiveProfile(profile) }
@@ -857,17 +886,20 @@ struct SessionListView: View {
     private var drawerMenu: some View {
         List {
             Section {
-                HomeDrawerEntry(title: String(localized: "Sessions"), systemImage: "bubble.left.and.bubble.right",
-                                isActive: true) {
+                SidebarNavButton(title: String(localized: "Sessions"), assetImage: "bubble.left.and.bubble.right",
+                                 isSelected: drawerRoot == nil, isSystemImage: true) {
+                    drawerRoot = nil
                     isShowingDrawer = false
                 }
-            }
-            Section {
+                .padding(.horizontal, 24)
+                .padding(.top, 4)
+                .sessionsScreenListRow()
                 utilityRows(topPadding: 4, closingDrawer: true)
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .clearsSessionsRowBackgrounds()
         .environment(\.defaultMinListRowHeight, 0)
     }
 

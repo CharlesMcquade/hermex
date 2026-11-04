@@ -482,6 +482,8 @@ struct SessionSidebarUtilityRows: View {
     @Binding var projectPendingRename: ProjectSummary?
 
     let openDestination: (SessionListUtilityDestination) -> Void
+    /// The menu item showing as the home's root screen, highlighted in the drawer.
+    var selectedDestination: SessionListUtilityDestination? = nil
     let switchActiveProfile: (ProfileSummary) -> Void
     let presentProjectCreation: () -> Void
 
@@ -546,37 +548,37 @@ struct SessionSidebarUtilityRows: View {
     private var utilityLinks: some View {
         VStack(alignment: .leading, spacing: Self.rowSpacing) {
             if sectionVisibility.bots {
-                SidebarNavButton(title: String(localized: "Bots"), assetImage: "LucideBot") {
+                SidebarNavButton(title: String(localized: "Bots"), assetImage: "LucideBot", isSelected: selectedDestination == .bots) {
                     openDestination(.bots)
                 }
             }
 
             if sectionVisibility.tasks {
-                SidebarNavButton(title: String(localized: "Tasks"), assetImage: "LucideCalendarClock") {
+                SidebarNavButton(title: String(localized: "Tasks"), assetImage: "LucideCalendarClock", isSelected: selectedDestination == .tasks) {
                     openDestination(.tasks)
                 }
             }
 
             if sectionVisibility.kanban {
-                SidebarNavButton(title: String(localized: "Kanban"), assetImage: "LucideColumns3") {
+                SidebarNavButton(title: String(localized: "Kanban"), assetImage: "LucideColumns3", isSelected: selectedDestination == .kanban) {
                     openDestination(.kanban)
                 }
             }
 
             if sectionVisibility.skills {
-                SidebarNavButton(title: String(localized: "Skills"), assetImage: "LucideHammer") {
+                SidebarNavButton(title: String(localized: "Skills"), assetImage: "LucideHammer", isSelected: selectedDestination == .skills) {
                     openDestination(.skills)
                 }
             }
 
             if sectionVisibility.memory {
-                SidebarNavButton(title: String(localized: "Memory"), assetImage: "LucideBrain") {
+                SidebarNavButton(title: String(localized: "Memory"), assetImage: "LucideBrain", isSelected: selectedDestination == .memory) {
                     openDestination(.memory)
                 }
             }
 
             if sectionVisibility.insights {
-                SidebarNavButton(title: String(localized: "Usage"), assetImage: "LucideChartColumnIncreasing") {
+                SidebarNavButton(title: String(localized: "Usage"), assetImage: "LucideChartColumnIncreasing", isSelected: selectedDestination == .insights) {
                     openDestination(.insights)
                 }
             }
@@ -1619,9 +1621,12 @@ struct AvatarServerSwitcherMenu: View {
 
 extension View {
     func sessionsScreenListRow(insets: EdgeInsets = EdgeInsets()) -> some View {
-        listRowInsets(insets)
-            .listRowSeparator(.hidden)
-            .listRowBackground(Color(.systemBackground))
+        modifier(SessionsScreenListRow(insets: insets))
+    }
+
+    /// Rows inside the translucent home menu draw no background of their own.
+    func clearsSessionsRowBackgrounds() -> some View {
+        environment(\.sessionsRowsAreClear, true)
     }
 
     func sessionsTopChromeListRow() -> some View {
@@ -1700,25 +1705,32 @@ struct SessionListFloatingChatButtonStyle: ButtonStyle {
 struct SidebarNavButton: View {
     let title: String
     let assetImage: String
+    var isSelected = false
+    var isSystemImage = false
     let action: () -> Void
 
     var body: some View {
         HapticButton(action: action) {
             HStack(spacing: 18) {
-                SidebarUtilityIcon(assetImage: assetImage)
+                SidebarUtilityIcon(assetImage: assetImage, tint: isSelected ? Color.accentColor : .primary,
+                                   isSystemImage: isSystemImage)
 
                 Text(title)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .font(.body.weight(isSelected ? .bold : .semibold))
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                     .lineLimit(1)
 
                 Spacer(minLength: 0)
             }
             .frame(minHeight: 44)
+            .padding(.horizontal, 12)
+            .background { SidebarSelectionHighlight(isSelected: isSelected) }
+            .padding(.horizontal, -12)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -1786,9 +1798,11 @@ private struct SidebarDisclosureChevron: View {
 struct SidebarUtilityIcon: View {
     let assetImage: String
     var tint: Color = .primary
+    /// Treat `assetImage` as an SF Symbol name.
+    var isSystemImage = false
 
     var body: some View {
-        Image(assetImage)
+        (isSystemImage ? Image(systemName: assetImage) : Image(assetImage))
             .renderingMode(.template)
             .resizable()
             .scaledToFit()
@@ -1817,16 +1831,28 @@ struct SidebarSubrowSelectionStyle: ViewModifier {
         content
             .padding(.leading, 18)
             .padding(.trailing, 10)
-            .background {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.accentColor.opacity(0.10))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(Color.accentColor.opacity(0.20), lineWidth: 1)
-                        }
+            .background { SidebarSelectionHighlight(isSelected: isSelected) }
+    }
+}
+
+/// The menu's selected row: a faint accent wash with a soft glow and a lit top
+/// edge, and no outline (outlines read as stray lines on the translucent panel).
+struct SidebarSelectionHighlight: View {
+    let isSelected: Bool
+
+    var body: some View {
+        if isSelected {
+            let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+            shape
+                .fill(Color.accentColor.opacity(0.12))
+                .overlay {
+                    shape.fill(LinearGradient(
+                        colors: [Color.white.opacity(0.10), .clear],
+                        startPoint: .top, endPoint: .center
+                    ))
                 }
-            }
+                .shadow(color: Color.accentColor.opacity(0.22), radius: 8, y: 2)
+        }
     }
 }
 
@@ -2342,4 +2368,21 @@ enum SessionTimeBucket: String, CaseIterable, Hashable {
             return .older
         }
     }
+}
+
+
+private struct SessionsScreenListRow: ViewModifier {
+    let insets: EdgeInsets
+    @Environment(\.sessionsRowsAreClear) private var isClear
+
+    func body(content: Content) -> some View {
+        content
+            .listRowInsets(insets)
+            .listRowSeparator(.hidden)
+            .listRowBackground(isClear ? Color.clear : Color(.systemBackground))
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var sessionsRowsAreClear = false
 }

@@ -280,6 +280,12 @@ struct ChatTranscriptView: View {
                     // changes, and Reduce Motion is respected automatically.
                     releasingHold { proxy.scrollTo(renderID, anchor: .top) }
                 }
+                .onChange(of: transcriptBottomInsetHeight) {
+                    // The keyboard or composer went away (drag-down, send): a reader at
+                    // the live edge stays at the bottom, as after a scroll dismissal.
+                    guard isFollowingLatestContent else { return }
+                    releasingHold { onScrollToLatestContent(proxy, false) }
+                }
                 .onChange(of: messages.count) {
                     guard isFollowingLatestContent else { return }
 
