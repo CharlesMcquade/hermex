@@ -178,7 +178,7 @@ struct MessageComposerView: View {
 
     /// t3code sizing: every circle in the composer is 44 pt, which is also the
     /// minimum hit target, so no invisible hit padding is needed.
-    /// Send and the mic sit inside the Messages-style pill (`compactSurface`).
+    /// Send sits inside the Messages-style pill (`compactSurface`); the mic sits beside +.
     private let circleSize: CGFloat = 30
     private let pillInset = ChatComposerMetrics.pillInset
 
@@ -1052,7 +1052,7 @@ struct MessageComposerView: View {
     }
 
     /// The composer, shaped like Messages: + beside a pill whose editor starts at
-    /// one line and grows with the text, with the mic and Send inside. Runtime
+    /// one line and grows with the text, with Send inside and the mic beside +. Runtime
     /// controls sit in `toolbarRow` under it, or on the side rail when there is one.
     private var compactSurface: some View {
         HStack(alignment: .bottom, spacing: 8) {
@@ -1070,6 +1070,12 @@ struct MessageComposerView: View {
             .disabled(isConfigurationControlDisabled)
             .accessibilityLabel("Composer options")
 
+            // The mic sits outside the pill, beside +, so the text field separates it
+            // from Send and a reach for Send can't start dictation.
+            voiceControlButton(size: 36)
+                .adaptiveGlass(.regular, isInteractive: true, fallbackMaterial: .ultraThinMaterial, in: Circle())
+                .clipShape(Circle())
+
             VStack(spacing: 0) {
                 if !pendingAttachments.isEmpty {
                     ComposerAttachmentStripView(
@@ -1081,9 +1087,6 @@ struct MessageComposerView: View {
 
                 HStack(alignment: .bottom, spacing: 0) {
                     textInput(isCollapsed: false, verticalPadding: 7, minimumHeight: 22, horizontalPadding: 12)
-
-                    voiceControlButton(size: 30)
-                        .padding(.bottom, 3)
 
                     actionButton
                         .padding(.bottom, 3)
