@@ -118,6 +118,15 @@ struct ModelsResponse: Decodable, Equatable {
     let models: [JSONValue]?
     let defaultModel: String?
     let activeProvider: String?
+    /// Model id → its place in the configured chain (`role` primary/fallback,
+    /// `label` "Primary"/"Fallback N", `provider`). Webui `/api/models`.
+    var configuredModelBadges: [String: ConfiguredModelBadge]? = nil
+}
+
+struct ConfiguredModelBadge: Decodable, Equatable, Sendable {
+    let role: String?
+    let label: String?
+    let provider: String?
 }
 
 struct CommandsResponse: Decodable, Equatable {
@@ -832,6 +841,27 @@ extension Collection where Element == ModelCatalogOption {
 extension ModelsResponse {
     var catalogGroups: [ModelCatalogGroup] {
         ModelCatalogParser.parseGroups(from: self)
+    }
+
+    /// The catalog with the configured primary → fallback chain as a leading group,
+    /// in chain order, like webui's picker. Plain `catalogGroups` when there's no chain.
+    var catalogGroupsWithFallbackChain: [ModelCatalogGroup] {
+        let groups = catalogGroups
+        guard let badges = configuredModelBadges, !badges.isEmpty else { return groups }
+        let options = groups.flatMap(\.allModels)
+        var byLabel: [String: ModelCatalogOption] = [:]
+        for (modelID, badge) in badges {
+            guard let label = badge.label, !modelID.hasPrefix("@") else { continue }
+            let match = options.first { $0.id == modelID && $0.providerID == badge.provider }
+            let option = match ?? ModelCatalogOption(id: modelID, displayName: modelID, providerID: badge.provider)
+            if byLabel[label] == nil || match != nil { byLabel[label] = option }
+        }
+        func rank(_ label: String) -> Int {
+            label == "Primary" ? 0 : Int(label.split(separator: " ").last ?? "") ?? 999
+        }
+        let chain = byLabel.sorted { rank($0.key) < rank($1.key) }.map(\.value)
+        guard !chain.isEmpty else { return groups }
+        return [ModelCatalogGroup(id: "configured-fallback-chain", name: String(localized: "Fallback chain"), providerID: nil, models: chain)] + groups
     }
 
     func displayName(for modelID: String?) -> String? {

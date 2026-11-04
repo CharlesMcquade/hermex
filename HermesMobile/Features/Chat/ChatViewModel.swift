@@ -1189,7 +1189,7 @@ final class ChatViewModel {
             return
         }
         if let response = try? await client.models() {
-            let groups = response.catalogGroups
+            let groups = response.catalogGroupsWithFallbackChain
             if !groups.isEmpty {
                 modelCatalogGroups = groups
             }
@@ -1234,6 +1234,21 @@ final class ChatViewModel {
         workspaceSuggestions = state.workspaceSuggestions
         profileOptions = state.profileOptions
         isSingleProfileMode = state.isSingleProfileMode
+    }
+
+    /// Whether the rail's approvals switch can change the bypass right now.
+    var mayToggleSessionApprovalBypass: Bool {
+        guard let requests = hermesRequests else { return sessionID != nil }
+        return !requests.isChangingApprovalBypass && (!requests.approvalBypass || requests.mayTurnOffApprovalBypass)
+    }
+
+    /// The rail's approvals switch: the same per-session bypass `/yolo` flips.
+    func toggleSessionApprovalBypass() async {
+        if let requests = hermesRequests {
+            _ = await requests.toggleApprovalBypass()
+        } else {
+            _ = await pendingActionCoordinator.toggleApprovalBypassForCurrentSession()
+        }
     }
 
     func refreshApprovalBypassState() async {

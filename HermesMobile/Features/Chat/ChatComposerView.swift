@@ -304,6 +304,9 @@ struct MessageComposerView: View {
     var mayChangeFastMode = false
     /// Asks the host for the other Fast mode.
     var onSelectFastMode: (Bool) -> Void = { _ in }
+    /// Set while the system side rail shows: the runtime controls leave the composer
+    /// row for the rail's chat-settings menu.
+    var runtimeControlsOnRail = false
     /// A Hermes session (#1012): staged files upload when they are sent, under Bot Chat's
     /// rules. Up to eight, and Steer drops out while a response runs.
     var uploadsAttachmentsOnSend = false
@@ -1043,7 +1046,7 @@ struct MessageComposerView: View {
             ComposerToolbarScroller {
                 composerPlusMenu
 
-                if showsSessionControls || showsModelAndProfileControls {
+                if !runtimeControlsOnRail, showsSessionControls || showsModelAndProfileControls {
                     modelEffortControl
 
                     workspaceSelector
@@ -1755,3 +1758,4 @@ struct MessageComposerView: View {
             && nsError.code == CocoaError.Code.userCancelled.rawValue
     }
 }
+

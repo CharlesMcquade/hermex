@@ -136,7 +136,7 @@ struct ChatComposerConfigLoader {
         }
 
         let modelsResponse = try await client.models()
-        state.modelCatalogGroups = modelsResponse.catalogGroups
+        state.modelCatalogGroups = modelsResponse.catalogGroupsWithFallbackChain
         if state.currentModel == nil {
             state.currentModel = modelsResponse.defaultModel
         }

@@ -444,6 +444,8 @@ struct ChatView: View {
     @State private var showsDelegatedWork = false
     /// A bot's chat's pill opened the bot's profile (#1145).
     @State private var showsBotProfileEditor = false
+    @State private var hasSideRail = false
+    @State private var showsRailWorkspaceSearch = false
     /// Measured height of the pinned notice stack, which grows with each
     /// notice and with Dynamic Type.
     @State private var pinnedNoticeStackHeight: CGFloat = 0
@@ -784,6 +786,7 @@ struct ChatView: View {
                     }
                 }
             },
+            runtimeControlsOnRail: hasSideRail,
             uploadsAttachmentsOnSend: isHermesSession,
             onCancelAttachmentUpload: viewModel.isSendingAttachments ? { viewModel.cancelAttachmentUpload() } : nil,
             hermesTranscriber: hermesTranscriber
@@ -791,11 +794,6 @@ struct ChatView: View {
         // The composer flips wholesale with the transcript under the RTL
         // toggle (#259): input, placeholder, and chrome mirror together.
         .environment(\.layoutDirection, chatLayoutDirection)
-        .background(
-            NavigationAppearanceCompletionObserver(action: handleInitialAppearanceCompletion)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-        )
     }
 
     /// Hermes documents share BotArtifactPreview. An image is known to be an image
@@ -1054,6 +1052,11 @@ struct ChatView: View {
                         .environment(\.layoutDirection, chatLayoutDirection)
                 }
                 .animation(ChatMotion.quickState(reduceMotion: reduceMotion), value: viewModel.showsListenPlaybackBar)
+                .onChange(of: collapsesComposerToRail) { _, collapsed in
+                    // The composer reports its height only while shown; zero it so the
+                    // transcript gets the space back.
+                    if collapsed { composerHeight = 0 }
+                }
 
                 BottomComposerMaterialFade(composerHeight: composerHeight)
 
@@ -1061,8 +1064,11 @@ struct ChatView: View {
 
                 clarificationInset(maximumExpandedHeight: clarificationMaximumHeight)
 
-                messageComposer
-                    .frame(maxWidth: composerMaximumWidth)
+                if !collapsesComposerToRail {
+                    messageComposer
+                        .frame(maxWidth: composerMaximumWidth)
+                        .transition(ChatMotion.bottomOverlayTransition(reduceMotion: reduceMotion))
+                }
 
                 ActionToastView(state: toastState)
                     .frame(maxWidth: 420)
@@ -1078,6 +1084,13 @@ struct ChatView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
         }
+        // On the scaffold, not the composer: the rail can fold the composer away,
+        // and the chat's initial load waits on this.
+        .background(
+            NavigationAppearanceCompletionObserver(action: handleInitialAppearanceCompletion)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        )
         .navigationTitle(viewModel.hermesBotChat?.botProfile?.name ?? displayTitle)
         .navigationBarTitleDisplayMode(.inline)
         // A bot's pill names the chat; its title stays only for Back on screens pushed over it.
@@ -1211,6 +1224,9 @@ struct ChatView: View {
                     }
                 }
 
+                if hasSideRail {
+                    railToolbarItems
+                } else {
                 ToolbarItem(placement: .topBarTrailing) {
                     ChatToolbarActionCluster {
                         if viewModel.showsGoalControls {
@@ -1243,9 +1259,12 @@ struct ChatView: View {
                         }
                     }
                 }
+                }
 
                 delegatedWorkToolbarItem
             }
+            .readsVerticalBarPresence($hasSideRail)
+
             .navigationDestination(item: $pushedSession) { session in
                 ChatView(session: session, server: server, onAPIError: onAPIError)
             }
@@ -1257,6 +1276,23 @@ struct ChatView: View {
                 HermesSessionListView(entry: entry).id(entry.id)
             }
             .navigationDestination(isPresented: $showsBotProfileEditor) { botProfileEditor }
+            .sheet(isPresented: $showsRailWorkspaceSearch) {
+                ComposerWorkspacePickerSheet(
+                    allowsCustomPath: true,
+                    workspaceRoots: viewModel.workspaceRoots,
+                    selectedWorkspacePath: viewModel.selectedWorkspacePath,
+                    suggestions: viewModel.workspaceSuggestions,
+                    managementServer: isHermesSession ? nil : server,
+                    onLoadSuggestions: { await viewModel.loadWorkspaceSuggestions(prefix: $0) },
+                    onSelect: { path in
+                        showsRailWorkspaceSearch = false
+                        if await viewModel.selectWorkspacePath(path) { ChatHaptics.configurationSelected(isEnabled: isHapticsEnabled) }
+                    },
+                    onRegistryChanged: { await viewModel.refreshWorkspaceRoots() }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
             .onChange(of: showsBotProfileEditor) { _, isShown in
                 if !isShown, let botChat = viewModel.hermesBotChat { Task { await botChat.settings.refreshProfiles() } }
             }
@@ -2182,6 +2218,194 @@ struct ChatView: View {
         }
     }
 
+    /// While the side rail shows, the composer folds into the rail's Compose button
+    /// until there's something in it: a draft, quotes, attachments, focus, or the open panel.
+    private var collapsesComposerToRail: Bool {
+        hasSideRail && !composerIsFocused
+            && draftMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && viewModel.pendingAttachments.isEmpty
+    }
+
+    /// The chat's controls as separate rail items, top to bottom for the right thumb.
+    @ToolbarContentBuilder
+    private var railToolbarItems: some ToolbarContent {
+        if #available(iOS 27.1, *) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if viewModel.showsGoalControls { goalControlMenu }
+                if showsFilesButton, !isHermesSession || browsableHermesWorkspace != nil {
+                    NavigationLink {
+                        FileBrowserView(
+                            files: workspaceFiles,
+                            search: viewModel.workspaceFileSearch,
+                            onAPIError: onAPIError,
+                            onAddToPrompt: reviewCommentHook
+                        )
+                    } label: {
+                        Label("Files", systemImage: "folder")
+                    }
+                    .disabled(viewModel.isViewingCachedData)
+                }
+                if showsGitControls, gitAvailabilityViewModel.hasRepository { gitActionsMenu }
+                railRuntimeButton
+                if viewModel.activeStreamID != nil { railStopButton }
+                railComposeButton
+            }
+            .axisBehavior(.verticalPreferred)
+        }
+    }
+
+    /// Mail's compose button: always opens the composer, so you can steer or queue a
+    /// message mid-run. Stop is its own rail button while a response runs.
+    private var railComposeButton: some View {
+        Button {
+            withAnimation(ChatMotion.quickState(reduceMotion: reduceMotion)) { composerIsFocused = true }
+        } label: {
+            Label("Compose", systemImage: "square.and.pencil")
+        }
+        .disabled(viewModel.isViewingCachedData)
+    }
+
+    private var railStopButton: some View {
+        Button {
+            Task { await cancelStream() }
+        } label: {
+            Label("Stop response", systemImage: "stop.fill")
+        }
+        .disabled(viewModel.isCancellingStream)
+    }
+
+    /// The rail's chat-settings menu: native, so each setting branches as a submenu
+    /// off the rail button. Orange bolt while approvals are skipped.
+    private var railRuntimeButton: some View {
+        let skips = viewModel.isSessionApprovalBypassEnabled
+        let busy = viewModel.isUpdatingComposerConfiguration || viewModel.isViewingCachedData
+        return Menu {
+            if !viewModel.composerModelGroups.isEmpty {
+                Menu {
+                    ForEach(viewModel.composerModelGroups) { group in
+                        Menu(group.name) {
+                            ForEach(group.models) { option in
+                                Button {
+                                    Task { if await viewModel.selectComposerModel(option) { ChatHaptics.configurationSelected(isEnabled: isHapticsEnabled) } }
+                                } label: {
+                                    if option.id == viewModel.selectedModelID, option.providerID == viewModel.selectedModelProviderID || viewModel.selectedModelProviderID == nil {
+                                        Label(option.displayName, systemImage: "checkmark")
+                                    } else {
+                                        Text(option.displayName)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    // The selection is the row's title so it reads first.
+                    Label {
+                        Text(viewModel.selectedModelTitle ?? String(localized: "Model"))
+                        Text(railModelSubtitle)
+                    } icon: { Image(systemName: "cpu") }
+                }
+                .disabled(busy)
+            }
+
+            Divider()
+
+            Toggle(isOn: Binding(get: { skips }, set: { _ in Task { await viewModel.toggleSessionApprovalBypass() } })) {
+                Label("Skip approvals", systemImage: "bolt.slash")
+            }
+            .disabled(!viewModel.mayToggleSessionApprovalBypass)
+
+            if let fast = viewModel.composerFastMode {
+                Toggle(isOn: Binding(get: { fast }, set: { enabled in
+                    Task { if await viewModel.selectFastMode(enabled) { ChatHaptics.configurationSelected(isEnabled: isHapticsEnabled) } }
+                })) {
+                    Label("Fast", systemImage: "hare")
+                }
+                .disabled(busy || !viewModel.composerMayChangeFastMode)
+            }
+
+            Divider()
+
+            if viewModel.showsReasoningEffortControl == true, viewModel.supportsReasoningEffort == true,
+               let efforts = viewModel.composerSupportedReasoningEfforts, !efforts.isEmpty {
+                Menu {
+                    ForEach(efforts, id: \.self) { effort in
+                        Button {
+                            Task { if await viewModel.selectReasoningEffort(effort) { ChatHaptics.configurationSelected(isEnabled: isHapticsEnabled) } }
+                        } label: {
+                            if effort == viewModel.composerReasoningEffort {
+                                Label(effort.capitalized, systemImage: "checkmark")
+                            } else {
+                                Text(effort.capitalized)
+                            }
+                        }
+                    }
+                } label: {
+                    Label { Text("Effort"); Text(viewModel.composerReasoningEffort?.capitalized ?? "") } icon: { Image(systemName: "brain") }
+                }
+                .disabled(busy)
+            }
+
+            if viewModel.composerIsSingleProfileMode != true, viewModel.composerProfileOptions.count > 1 {
+                Menu {
+                    ForEach(viewModel.composerProfileOptions) { profile in
+                        Button {
+                            handleProfileSelection(profile)
+                        } label: {
+                            if profile.name == viewModel.selectedProfileName {
+                                Label(profile.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(profile.displayName)
+                            }
+                        }
+                    }
+                } label: {
+                    Label { Text("Profile"); Text(viewModel.selectedProfileTitle ?? "") } icon: { Image(systemName: "person.crop.circle") }
+                }
+                .disabled(busy)
+            }
+
+            let roots = viewModel.workspaceRoots.compactMap { root in root.path.map { (path: $0, name: root.name) } }
+            if !roots.isEmpty {
+                Menu {
+                    Button {
+                        showsRailWorkspaceSearch = true
+                    } label: {
+                        Label("Search…", systemImage: "magnifyingglass")
+                    }
+                    Divider()
+                    ForEach(roots, id: \.path) { root in
+                        Button {
+                            Task { if await viewModel.selectWorkspacePath(root.path) { ChatHaptics.configurationSelected(isEnabled: isHapticsEnabled) } }
+                        } label: {
+                            let title = root.name ?? (root.path as NSString).lastPathComponent
+                            if root.path == viewModel.selectedWorkspacePath {
+                                Label(title, systemImage: "checkmark")
+                            } else {
+                                Text(title)
+                            }
+                        }
+                    }
+                } label: {
+                    Label {
+                        Text("Workspace")
+                        Text(viewModel.selectedWorkspacePath.map { ($0 as NSString).lastPathComponent } ?? "")
+                    } icon: { Image(systemName: "folder.badge.gearshape") }
+                }
+                .disabled(busy)
+            }
+        } label: {
+            Label("Chat settings", systemImage: skips ? "bolt.slash.fill" : "slider.horizontal.3")
+                .foregroundStyle(skips ? Color.orange : Color.primary)
+        }
+        .accessibilityValue(skips ? Text("Approvals skipped") : Text(""))
+    }
+
+    private var railModelSubtitle: String {
+        let effort = viewModel.composerReasoningEffort?.capitalized
+        return [String(localized: "Model"), effort].compactMap { $0 }.joined(separator: " · ")
+    }
+
+
     @ViewBuilder
     private var messageContent: some View {
         let structure = transcriptStructure
@@ -2468,7 +2692,7 @@ struct ChatView: View {
     }
 
     private var showsApprovalBypassStatus: Bool {
-        guard viewModel.isSessionApprovalBypassEnabled, viewModel.approvalPrompt == nil else { return false }
+        guard !hasSideRail, viewModel.isSessionApprovalBypassEnabled, viewModel.approvalPrompt == nil else { return false }
         if case .approval? = viewModel.hermesRequests?.onScreen { return false }
         return true
     }
@@ -4650,3 +4874,4 @@ private struct HermesFilePreviewItem: Identifiable {
     var name: String? = nil
     var isSentAttachment = false
 }
+

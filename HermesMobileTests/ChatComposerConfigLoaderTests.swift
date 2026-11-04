@@ -333,4 +333,23 @@ final class ReasoningEffortGatingTests: XCTestCase {
             XCTAssertEqual(selection(sent: sent).accessibilityTitle, "gpt-6 · XHigh")
         }
     }
+
+    func testModelsResponseLeadsWithConfiguredFallbackChainInOrder() throws {
+        let json = """
+        {"groups":[{"provider_id":"copilot","name":"Copilot","models":[{"id":"gpt-6.1-sol","label":"GPT 6.1 Sol"},{"id":"claude-opus-5.5","label":"Opus 5.5"}]},
+                   {"provider_id":"custom:vllm","name":"vLLM","models":[{"id":"glm","label":"GLM"}]}],
+         "configured_model_badges":{
+           "claude-opus-5.5":{"role":"fallback","label":"Fallback 2","provider":"copilot"},
+           "glm":{"role":"primary","label":"Primary","provider":"custom:vllm"},
+           "@copilot:gpt-6.1-sol":{"role":"fallback","label":"Fallback 1","provider":"copilot"},
+           "gpt-6.1-sol":{"role":"fallback","label":"Fallback 1","provider":"copilot"}}}
+        """
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let response = try decoder.decode(ModelsResponse.self, from: Data(json.utf8))
+        let groups = response.catalogGroupsWithFallbackChain
+        XCTAssertEqual(groups.first?.models.map(\.id), ["glm", "gpt-6.1-sol", "claude-opus-5.5"])
+        XCTAssertEqual(groups.first?.models.map(\.providerID), ["custom:vllm", "copilot", "copilot"])
+        XCTAssertEqual(groups.count, 3)
+    }
 }
