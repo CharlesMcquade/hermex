@@ -79,7 +79,7 @@ import SwiftUI
                         .padding().accessibilityAddTraits(.updatesFrequently)
                 }
             }
-            .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer) { botsDrawerMenu } }
+            .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer, isEnabled: horizontalSizeClass != .regular) { botsDrawerMenu } }
             .toolbarVisibility(isShowingDrawer ? .hidden : .automatic, for: .bottomBar)
             .task(id: toast) {
                 guard toast != nil else { return }

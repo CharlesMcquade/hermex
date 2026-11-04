@@ -225,7 +225,7 @@ struct HermesSessionListView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 22)
         }
-        .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer) { sessionsDrawerMenu } }
+        .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer, isEnabled: horizontalSizeClass != .regular) { sessionsDrawerMenu } }
         // The drawer's scrim covers the glass bottom bar too, so its buttons
         // cannot be tapped while the menu is open.
         .toolbarVisibility(isShowingDrawer ? .hidden : .automatic, for: .bottomBar)

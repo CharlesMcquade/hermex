@@ -92,32 +92,41 @@ private struct HermesHomeSwitch: View {
 private enum HomeDrawerMetrics {
     static let panelWidth: CGFloat = 312
     static let dismissDragDistance: CGFloat = 70
+    /// The leading strip a closed drawer listens on for a swipe in.
+    static let edgeWidth: CGFloat = 20
 }
 
 /// The compact home's slide-out menu: a leading panel over a dimming scrim.
-/// Tap outside or swipe the panel left to close; the hamburger in the header
-/// opens it. Split layouts never show it — their sidebar is already the menu.
+/// Tap outside or swipe left to close; the hamburger or a swipe in from the
+/// leading edge opens it. Split layouts pass `isEnabled: false` — their sidebar
+/// is already the menu.
 struct HomeDrawerOverlay<Menu: View>: View {
     @Binding var isOpen: Bool
+    var isEnabled = true
     @ViewBuilder let menu: () -> Menu
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// Negative while the user drags the panel left toward closed.
+    /// Panel offset from its resting place while a finger drags it:
+    /// negative toward closed when open, positive toward open when closed.
     @State private var dragTranslation: CGFloat = 0
 
     var body: some View {
         ZStack(alignment: .leading) {
             scrim
             panel
+            if isEnabled && !isOpen {
+                edgeSwipeStrip
+            }
         }
         .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.86), value: isOpen)
     }
 
     private var scrim: some View {
         Color.black
-            .opacity(isOpen ? 0.4 : 0)
+            .opacity(isOpen ? 0.4 : 0.4 * openProgress)
             .ignoresSafeArea()
             .onTapGesture(perform: close)
+            .gesture(swipeToClose, including: isOpen ? .all : .none)
             .accessibilityHidden(true)
     }
 
@@ -131,20 +140,57 @@ struct HomeDrawerOverlay<Menu: View>: View {
                     .ignoresSafeArea(.container, edges: .vertical)
             }
             .shadow(color: .black.opacity(0.22), radius: 16, x: 6)
-            .offset(x: isOpen ? dragTranslation : -HomeDrawerMetrics.panelWidth - 28)
+            .offset(x: isOpen ? dragTranslation : closedOffset + dragTranslation)
             .allowsHitTesting(isOpen)
-            .gesture(swipeToClose)
+            // Simultaneous, so the menu's own scroll view can't swallow a sideways swipe.
+            .simultaneousGesture(swipeToClose, including: isOpen ? .all : .none)
             .accessibilityAction(.escape) { close() }
             .accessibilityHidden(!isOpen)
     }
 
-    private var swipeToClose: some Gesture {
-        DragGesture(minimumDistance: 12)
+    private var closedOffset: CGFloat { -HomeDrawerMetrics.panelWidth - 28 }
+
+    /// 0 closed … 1 fully pulled out, while an edge swipe is in flight.
+    private var openProgress: CGFloat {
+        isOpen ? 1 : min(1, max(0, dragTranslation / -closedOffset))
+    }
+
+    private var edgeSwipeStrip: some View {
+        Color.clear
+            .frame(width: HomeDrawerMetrics.edgeWidth)
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .ignoresSafeArea()
+            .gesture(swipeToOpen)
+            .accessibilityHidden(true)
+    }
+
+    private var swipeToOpen: some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .global)
             .onChanged { value in
+                dragTranslation = min(-closedOffset, max(0, value.translation.width))
+            }
+            .onEnded { value in
+                let opened = value.translation.width > HomeDrawerMetrics.dismissDragDistance
+                    || value.predictedEndTranslation.width > HomeDrawerMetrics.panelWidth / 2
+                withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9)) {
+                    dragTranslation = 0
+                    if opened { isOpen = true }
+                }
+            }
+    }
+
+    private var swipeToClose: some Gesture {
+        DragGesture(minimumDistance: 12, coordinateSpace: .global)
+            .onChanged { value in
+                // Only a mostly-sideways drag moves the panel; a vertical one scrolls the menu.
+                guard abs(value.translation.width) > abs(value.translation.height) else { return }
                 dragTranslation = min(0, value.translation.width)
             }
             .onEnded { value in
-                let dismissed = value.translation.width < -HomeDrawerMetrics.dismissDragDistance
+                let dismissed = abs(value.translation.width) > abs(value.translation.height)
+                    && (value.translation.width < -HomeDrawerMetrics.dismissDragDistance
+                        || value.predictedEndTranslation.width < -HomeDrawerMetrics.panelWidth / 2)
                 withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.9)) {
                     dragTranslation = 0
                     if dismissed { isOpen = false }

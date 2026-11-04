@@ -618,7 +618,7 @@ struct SessionListView: View {
             }
             .padding(.horizontal, 24)
         }
-        .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer) { drawerMenu } }
+        .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer, isEnabled: horizontalSizeClass != .regular) { drawerMenu } }
         // The Move question waits for this list: hidden under a pushed chat or a closed sidebar.
         .onAppear { MoveToHermesNotices.shared.noteChatList(of: server.absoluteString, onScreen: true) }
         .onDisappear { MoveToHermesNotices.shared.noteChatList(of: server.absoluteString, onScreen: false) }
