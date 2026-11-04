@@ -350,28 +350,9 @@ extension View {
     /// navigation title stays the plain name, which the bar shows once it collapses.
     @ViewBuilder
     func verityLargeTitle(_ title: LocalizedStringKey) -> some View {
-        if #available(iOS 26, *) {
-            navigationTitle(title)
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .largeTitle) {
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(verbatim: "VERITY")
-                                .font(.caption.weight(.semibold))
-                                .tracking(1.2)
-                                .foregroundStyle(.secondary)
-                                .accessibilityHidden(true)
-                            Text(title)
-                                .font(.largeTitle.bold())
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.6)
-                                .accessibilityAddTraits(.isHeader)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-        } else {
-            navigationTitle(title).navigationBarTitleDisplayMode(.large)
-        }
+        // A plain system large title. A custom `.largeTitle` toolbar item (the VERITY
+        // eyebrow) hung UIKit in an unbounded layout loop when popping a chat with the
+        // keyboard up: nav-bar height ↔ scroll offset ↔ safe area never settled.
+        navigationTitle(title).navigationBarTitleDisplayMode(.large)
     }
 }
