@@ -356,3 +356,20 @@ extension View {
         navigationTitle(title).navigationBarTitleDisplayMode(.large)
     }
 }
+
+/// The small "VERITY" above a root screen's large title. Drawn as an overlay, never a
+/// toolbar item, so it can't feed the navigation bar's height.
+struct VerityEyebrow: View {
+    @ScaledMetric(relativeTo: .caption) private var top: CGFloat = 28
+
+    var body: some View {
+        Text(verbatim: "VERITY")
+            .font(.caption.weight(.semibold))
+            .tracking(1.2)
+            .foregroundStyle(.secondary)
+            .padding(.leading, 20)
+            .padding(.top, top)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+}

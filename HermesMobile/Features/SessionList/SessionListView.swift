@@ -625,6 +625,14 @@ struct SessionListView: View {
                         selectDestination(.notificationSettings)
                     }
             }
+            // The VERITY eyebrow over each root screen's large title. It floats over the
+            // stack (and the drawer) instead of living in the nav bar: a custom
+            // `.largeTitle` toolbar item looped UIKit layout on pop with the keyboard up.
+            .overlay(alignment: .topLeading) {
+                VerityEyebrow()
+                    .opacity(navigationState.destination == nil ? 1 : 0)
+                    .animation(.easeOut(duration: 0.15), value: navigationState.destination == nil)
+            }
         }
     }
 
