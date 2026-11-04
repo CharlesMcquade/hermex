@@ -286,18 +286,12 @@ struct SessionsHeader: View {
                 }
 
                 if let title, !isExpanded {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(verbatim: "VERITY")
-                            .font(.caption.weight(.semibold))
-                            .tracking(1.2)
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
-                        Text(title)
-                            .font(.largeTitle.bold())
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                            .accessibilityAddTraits(.isHeader)
-                    }
+                    Text(title)
+                        .font(.largeTitle.bold())
+                        .tracking(2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .accessibilityAddTraits(.isHeader)
                 } else {
                     Color.clear
                         .frame(width: 0, height: 0)

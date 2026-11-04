@@ -1002,7 +1002,7 @@ struct SessionListView: View {
                 isExpanded: searchChromeIsExpanded, text: $searchText, isFocused: $searchFieldIsFocused, close: closeSearch
             ),
             menu: horizontalSizeClass == .regular || hasSideRail ? nil : { isShowingDrawer = true },
-            title: horizontalSizeClass == .regular && !hasSideRail ? String(localized: "Sessions") : nil,
+            title: horizontalSizeClass == .regular && !hasSideRail ? "VERITY" : nil,
             showsPill: !hasSideRail,
             openSearch: openSearch
         )
