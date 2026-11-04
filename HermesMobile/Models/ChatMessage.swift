@@ -90,6 +90,7 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
         case turnDuration = "_turnDuration"
         case displayKindSnake = "display_kind"
         case underscoredTimestamp = "_ts"
+        case source = "_source"
     }
 
     init(from decoder: Decoder) throws {
@@ -110,13 +111,29 @@ struct ChatMessage: Decodable, Equatable, Identifiable {
         attachments = Self.attachments(decodedAttachments, enrichedByMarkerIn: content)
         // Both key spellings: the REST client decodes snake_case, while the
         // SSE `done` payload's primary path uses a plain decoder.
+        // A webui server stamps synthetic wake-up prompts with `_source`; carry it as the
+        // display kind so the transcript, recall, and offline cache all see it.
         displayKind = container.decodeLossyStringIfPresent(forKey: .displayKind)
             ?? container.decodeLossyStringIfPresent(forKey: .displayKindSnake)
+            ?? container.decodeLossyStringIfPresent(forKey: .source).flatMap {
+                Self.backgroundWakeupSources.contains($0) ? $0 : nil
+            }
         displayMetadata = try? container.decodeIfPresent([String: JSONValue].self, forKey: .displayMetadata)
         turnTps = container.decodeLossyDoubleIfPresent(forKey: .turnTps)
         turnDuration = container.decodeLossyDoubleIfPresent(forKey: .turnDuration)
         rowID = nil
         isCompacted = false
+    }
+
+    // MARK: - Background wake-ups
+
+    /// webui `_source` values for prompts the server injects to wake the agent after a
+    /// delegated task or background process finishes (`ui.js` hides or mutes them).
+    static let backgroundWakeupSources: Set<String> = ["delegation_wakeup", "process_wakeup"]
+
+    /// A server-injected wake-up prompt. The transcript hides it; the agent's reply stays.
+    var isBackgroundWakeup: Bool {
+        displayKind.map(Self.backgroundWakeupSources.contains) ?? false
     }
 
     // MARK: - Steering hints

@@ -8916,6 +8916,7 @@ extension ChatViewModel {
 
         for (loadedIndex, message) in messages.enumerated() {
             guard message.role != "tool" else { continue }
+            guard !message.isBackgroundWakeup else { continue }
             guard !TranscriptTurnClassifier.isToolResultOnlyMessage(message) else { continue }
             if let streamingAssistantID, message.messageId == streamingAssistantID {
                 continue

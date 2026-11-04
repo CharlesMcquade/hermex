@@ -322,3 +322,23 @@ final class CompressionAnchorResolverTests: XCTestCase {
         )
     }
 }
+
+final class BackgroundWakeupTranscriptTests: XCTestCase {
+    func testWakeupPromptsAreHiddenButTheReplyStays() throws {
+        let json = #"""
+        [
+          {"role": "user", "content": "Kick off the build", "message_id": "u1"},
+          {"role": "user", "content": "[IMPORTANT: Background process proc_1 completed (exit_code=0).", "message_id": "w1", "_source": "process_wakeup"},
+          {"role": "user", "content": "[Delegated task finished]", "message_id": "w2", "_source": "delegation_wakeup"},
+          {"role": "assistant", "content": "The build passed.", "message_id": "a1"}
+        ]
+        """#
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let messages = try decoder.decode([ChatMessage].self, from: Data(json.utf8))
+
+        let transcript = ChatViewModel.transcriptMessages(from: messages)
+
+        XCTAssertEqual(transcript.map(\.message.messageId), ["u1", "a1"])
+    }
+}
