@@ -232,3 +232,65 @@ struct HomeDrawerEntry: View {
         .buttonStyle(.plain)
     }
 }
+
+/// Whether the system shows its vertical bar here (the iPhone Duo's side rail, iOS 27.1).
+/// SwiftUI has no environment value for it, so a zero-size UIKit view reads the trait.
+struct VerticalBarPresenceReader: UIViewRepresentable {
+    @Binding var isPresent: Bool
+
+    func makeUIView(context: Context) -> ProbeView {
+        let view = ProbeView()
+        view.onChange = { present in
+            if isPresent != present { isPresent = present }
+        }
+        return view
+    }
+
+    func updateUIView(_ uiView: ProbeView, context: Context) {}
+
+    final class ProbeView: UIView {
+        var onChange: ((Bool) -> Void)?
+        private var last: Bool?
+
+        override func didMoveToWindow() { super.didMoveToWindow(); report() }
+        override func layoutSubviews() { super.layoutSubviews(); report() }
+        override func traitCollectionDidChange(_ previous: UITraitCollection?) {
+            super.traitCollectionDidChange(previous); report()
+        }
+
+        private func report() {
+            var present = false
+            if #available(iOS 27.1, *) {
+                present = (window?.traitCollection ?? traitCollection).verticalBarEdge != .unspecified
+            }
+            guard present != last else { return }
+            last = present
+            DispatchQueue.main.async { [onChange] in onChange?(present) }
+        }
+    }
+}
+
+extension View {
+    /// Tracks the side rail's presence into `isPresent`.
+    func readsVerticalBarPresence(_ isPresent: Binding<Bool>) -> some View {
+        background(VerticalBarPresenceReader(isPresent: isPresent).frame(width: 0, height: 0).allowsHitTesting(false))
+    }
+
+    /// The home's menu toggle and New chat as side-rail items, only while the rail shows.
+    @ViewBuilder
+    func homeRailItems(isActive: Bool, toggleMenu: @escaping () -> Void, newChat: @escaping () -> Void) -> some View {
+        if #available(iOS 27.1, *), isActive {
+            toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button(action: toggleMenu) { Image(systemName: "line.3.horizontal") }
+                        .accessibilityLabel(Text("Menu"))
+                    Button(action: newChat) { Image(systemName: "plus") }
+                        .accessibilityLabel(Text("New chat"))
+                }
+                .axisBehavior(.verticalPreferred)
+            }
+        } else {
+            self
+        }
+    }
+}

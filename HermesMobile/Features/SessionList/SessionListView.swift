@@ -115,6 +115,7 @@ struct SessionListView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isShowingDrawer = false
+    @State private var hasSideRail = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var viewModel: SessionListViewModel
@@ -582,6 +583,8 @@ struct SessionListView: View {
         } else {
             NavigationStack {
                 sessionListSurface
+                    .readsVerticalBarPresence($hasSideRail)
+                    .homeRailItems(isActive: hasSideRail, toggleMenu: { isShowingDrawer.toggle() }, newChat: { isShowingDrawer = false; openNewChat() })
                     .navigationDestination(item: navigationDestinationBinding) { destination in
                         navigationDestination(destination)
                     }
@@ -610,7 +613,7 @@ struct SessionListView: View {
                         .padding(.bottom, isSearchingSessions ? 22 : 0)
                 }
 
-                if !isSearchingSessions {
+                if !isSearchingSessions && !hasSideRail {
                     newSessionButton
                         .padding(.bottom, 22)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -884,7 +887,7 @@ struct SessionListView: View {
             field: SessionsHeader.Field(
                 isExpanded: searchChromeIsExpanded, text: $searchText, isFocused: $searchFieldIsFocused, close: closeSearch
             ),
-            menu: horizontalSizeClass == .regular ? nil : { isShowingDrawer = true },
+            menu: horizontalSizeClass == .regular || hasSideRail ? nil : { isShowingDrawer = true },
             openSearch: openSearch
         )
         .onChange(of: searchFieldIsFocused) { _, newValue in
