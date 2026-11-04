@@ -1065,9 +1065,7 @@ struct SessionInteractiveRow: View {
             in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
         .transition(SessionListMotion.sessionRowTransition(reduceMotion: reduceMotion))
-        .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            sessionLeadingSwipeActions(for: session)
-        }
+        // No leading swipe: the edge swipe opens the home drawer. Pin lives in the long-press menu.
         // A full swipe commits Archive, which has Undo (#1394): never a lone Delete, and never
         // a second archive while one is in flight.
         .swipeActions(
@@ -1094,19 +1092,6 @@ struct SessionInteractiveRow: View {
             )
         }
         .sessionsScreenListRow(insets: EdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12))
-    }
-
-    @ViewBuilder
-    private func sessionLeadingSwipeActions(for session: SessionSummary) -> some View {
-        if canShowSessionMutationActions(for: session) {
-            Button {
-                actions.togglePinned(session)
-            } label: {
-                Label(session.pinned == true ? "Unpin" : "Pin", systemImage: "pin")
-            }
-            .disabled(viewModel.isMutating(session))
-            .tint(.accentColor)
-        }
     }
 
     @ViewBuilder
