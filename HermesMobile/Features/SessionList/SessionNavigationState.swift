@@ -18,6 +18,9 @@ struct SessionNavigationState: Equatable {
     private(set) var lastSelectedSessionID: String?
     private(set) var rootRevision = 0
     private var newChatSessionID: String?
+    /// The session a new chat created, so a rebuilt New Chat screen (an outer↔inner
+    /// screen switch swaps the navigation container) reopens it instead of creating another.
+    private(set) var newChatSession: SessionSummary?
     private var deepLinkedSessionLoadID: String?
 
     init(lastSelectedSessionID: String? = nil) {
@@ -36,6 +39,7 @@ struct SessionNavigationState: Equatable {
     mutating func select(_ session: SessionSummary) {
         rootRevision += 1
         newChatSessionID = nil
+        newChatSession = nil
         destination = .session(session)
         remember(session)
     }
@@ -43,12 +47,14 @@ struct SessionNavigationState: Equatable {
     mutating func select(_ route: PendingNewChatRoute) {
         rootRevision += 1
         newChatSessionID = nil
+        newChatSession = nil
         destination = .newChat(route)
     }
 
     mutating func select(_ utility: SessionListUtilityDestination) {
         rootRevision += 1
         newChatSessionID = nil
+        newChatSession = nil
         destination = .utility(utility)
     }
 
@@ -57,6 +63,7 @@ struct SessionNavigationState: Equatable {
         lastSelectedSessionID = sessionID
         if case .newChat = destination {
             newChatSessionID = sessionID
+            newChatSession = session
         }
     }
 
@@ -70,6 +77,7 @@ struct SessionNavigationState: Equatable {
     mutating func clearDestination() {
         destination = nil
         newChatSessionID = nil
+        newChatSession = nil
     }
 
     mutating func beginDeepLinkedSessionLoad(id: String?) -> String? {
@@ -122,6 +130,7 @@ struct SessionNavigationState: Equatable {
         if selectedSessionID == sessionID {
             destination = nil
             newChatSessionID = nil
+            newChatSession = nil
         }
 
         if lastSelectedSessionID == sessionID {
@@ -167,6 +176,18 @@ enum ChatShortcutNavigation {
 
 enum SessionNavigationPersistence {
     private static let keyPrefix = "sessionNavigation.lastSelectedSessionID."
+    private static let backgroundedAtKey = "sessionNavigation.backgroundedAt"
+    /// How long after leaving the app a relaunch still resumes the last chat.
+    static let resumeWindow: TimeInterval = 10 * 60
+
+    static func markBackgrounded(defaults: UserDefaults = .standard, now: Date = .now) {
+        defaults.set(now.timeIntervalSince1970, forKey: backgroundedAtKey)
+    }
+
+    static func wasRecentlyBackgrounded(defaults: UserDefaults = .standard, now: Date = .now) -> Bool {
+        let at = defaults.double(forKey: backgroundedAtKey)
+        return at > 0 && now.timeIntervalSince1970 - at < resumeWindow
+    }
 
     static func key(for server: URL) -> String {
         keyPrefix + server.absoluteString

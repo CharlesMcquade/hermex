@@ -93,7 +93,7 @@ private enum HomeDrawerMetrics {
     static let panelWidth: CGFloat = 312
     static let dismissDragDistance: CGFloat = 70
     /// The leading strip a closed drawer listens on for a swipe in.
-    static let edgeWidth: CGFloat = 20
+    static let edgeWidth: CGFloat = 48
 }
 
 /// The compact home's slide-out menu: a leading panel over a dimming scrim.
@@ -138,7 +138,7 @@ struct HomeDrawerOverlay<Menu: View>: View {
             // Lightly translucent, so the list blurs through behind the menu.
             .background(
                 reduceTransparency ? AnyShapeStyle(Color(.systemBackground)) : AnyShapeStyle(.ultraThinMaterial),
-                ignoresSafeAreaEdges: .vertical
+                ignoresSafeAreaEdges: [.vertical, .leading]
             )
             .overlay(alignment: .trailing) {
                 Color(.separator).opacity(0.5).frame(width: 0.5)
@@ -149,7 +149,6 @@ struct HomeDrawerOverlay<Menu: View>: View {
             // Hidden when closed: with the side rail on the leading edge (outer screen
             // held hinge-down), the safe area shifts the panel into view.
             .opacity(isOpen || dragTranslation != 0 ? 1 : 0)
-            .ignoresSafeArea(.container, edges: .leading)
             .allowsHitTesting(isOpen)
             // Simultaneous, so the menu's own scroll view can't swallow a sideways swipe.
             .simultaneousGesture(swipeToClose, including: isOpen ? .all : .none)
@@ -294,7 +293,8 @@ extension View {
 
     /// The home's menu toggle and New chat as side-rail items, only while the rail shows.
     @ViewBuilder
-    func homeRailItems(isActive: Bool, refreshKey: String? = nil, toggleMenu: @escaping () -> Void, newChat: @escaping () -> Void) -> some View {
+    func homeRailItems(isActive: Bool, refreshKey: String? = nil, toggleMenu: @escaping () -> Void, newChat: @escaping () -> Void,
+                       search: (() -> Void)? = nil, profile: HomeRailProfile? = nil) -> some View {
         if #available(iOS 27.1, *), isActive {
             toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -308,9 +308,70 @@ extension View {
                         .id("new" + (refreshKey ?? ""))
                 }
                 .axisBehavior(.verticalPreferred)
+                // Search and the server avatar sit at the rail's bottom, under the thumb.
+                ToolbarItemGroup(placement: .bottomBar) {
+                    if let search {
+                        Button(action: search) { Image(systemName: "magnifyingglass") }
+                            .accessibilityLabel(Text("Search sessions"))
+                            .id("search" + (refreshKey ?? ""))
+                    }
+                    if let profile {
+                        Button(action: profile.open) {
+                            Text(profile.initials)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(profile.foreground)
+                                .frame(width: 30, height: 30)
+                                .background(profile.color, in: Circle())
+                        }
+                        .accessibilityLabel(Text("Settings"))
+                        .id("profile" + (refreshKey ?? ""))
+                    }
+                }
+                .axisBehavior(.verticalPreferred)
             }
         } else {
             self
+        }
+    }
+}
+
+
+/// The server avatar the home rail shows at its bottom, opening Settings.
+struct HomeRailProfile {
+    let initials: String
+    let color: Color
+    let foreground: Color
+    let open: () -> Void
+}
+
+
+extension View {
+    /// The compact home's large title: a small "VERITY" above the screen's name. The
+    /// navigation title stays the plain name, which the bar shows once it collapses.
+    @ViewBuilder
+    func verityLargeTitle(_ title: LocalizedStringKey) -> some View {
+        if #available(iOS 26, *) {
+            navigationTitle(title)
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .largeTitle) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(verbatim: "VERITY")
+                                .font(.caption.weight(.semibold))
+                                .tracking(1.2)
+                                .foregroundStyle(.secondary)
+                                .accessibilityHidden(true)
+                            Text(title)
+                                .font(.largeTitle.bold())
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                                .accessibilityAddTraits(.isHeader)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+        } else {
+            navigationTitle(title).navigationBarTitleDisplayMode(.large)
         }
     }
 }

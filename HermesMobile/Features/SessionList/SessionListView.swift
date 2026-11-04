@@ -116,6 +116,9 @@ struct SessionListView: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isShowingDrawer = false
     @State private var hasSideRail = false
+    @State private var didOpenLaunchChat = false
+    @State private var isPresentingNewScheduledTask = false
+    @State private var scheduledSearchIsActive = false
     /// The menu item shown as the compact home's root screen; nil is Sessions. A menu
     /// pick replaces the root rather than pushing, so the menu stays one swipe away.
     @State private var drawerRoot: SessionListUtilityDestination?
@@ -221,6 +224,7 @@ struct SessionListView: View {
             .onChange(of: scenePhase) { _, phase in
                 if phase == .background {
                     wasBackgrounded = true
+                    SessionNavigationPersistence.markBackgrounded()
                 }
                 if phase == .active, wasBackgrounded {
                     wasBackgrounded = false
@@ -368,6 +372,23 @@ struct SessionListView: View {
                 AddServerView(authManager: authManager)
             }
             .task {
+                // A cold launch opens a blank new chat at once, unless a deep link,
+                // share or intent already chose where to go.
+                if !didOpenLaunchChat {
+                    didOpenLaunchChat = true
+                    if navigationState.destination == nil, pendingDeepLinkedSessionID == nil, pendingWebuiPush == nil {
+                        // Back within a few minutes (iOS often ends a backgrounded app):
+                        // reopen the last chat from cache at once. Otherwise start fresh.
+                        if SessionNavigationPersistence.wasRecentlyBackgrounded(),
+                           let id = navigationState.lastSelectedSessionID,
+                           let cached = try? CacheStore.cachedSessions(serverURL: server, in: modelContext)
+                               .first(where: { $0.sessionId == id }) {
+                            navigationState.select(cached)
+                        } else {
+                            openNewChat()
+                        }
+                    }
+                }
                 // Start the session rows immediately so a slow direct session
                 // request cannot leave the sidebar empty. Deep-link resolution still
                 // owns navigation precedence and is awaited before stored selection
@@ -587,7 +608,13 @@ struct SessionListView: View {
             NavigationStack {
                 compactRoot
                     .readsVerticalBarPresence($hasSideRail)
-                    .homeRailItems(isActive: hasSideRail, refreshKey: selectedProjectID, toggleMenu: { isShowingDrawer.toggle() }, newChat: { isShowingDrawer = false; openNewChat() })
+                    .homeRailItems(isActive: hasSideRail, refreshKey: String(describing: drawerRoot),
+                                   toggleMenu: { isShowingDrawer.toggle() },
+                                   newChat: { isShowingDrawer = false; if drawerRoot == .scheduled { isPresentingNewScheduledTask = true } else { openNewChat() } },
+                                   search: railSearchAction,
+                                   profile: HomeRailProfile(initials: settingsInitials, color: selectedHeaderLogoColor,
+                                                            foreground: initialsAvatarForegroundColor,
+                                                            open: { isShowingDrawer = false; selectDestination(.settings) }))
                     .navigationDestination(item: navigationDestinationBinding) { destination in
                         navigationDestination(destination)
                     }
@@ -630,11 +657,35 @@ struct SessionListView: View {
         .onDisappear { MoveToHermesNotices.shared.noteChatList(of: server.absoluteString, onScreen: false) }
     }
 
+    private static func drawerTitle(_ destination: SessionListUtilityDestination) -> LocalizedStringKey {
+        switch destination {
+        case .settings, .notificationSettings: "Settings"
+        case .bots: "Bots"
+        case .tasks: "Tasks"
+        case .kanban: "Kanban"
+        case .skills: "Skills"
+        case .memory: "Memory"
+        case .insights: "Usage"
+        case .archived: "Archived"
+        case .scheduled: "Scheduled"
+        }
+    }
+
+    /// Rail search: Sessions and Scheduled open a bottom search field; other screens have none.
+    private var railSearchAction: (() -> Void)? {
+        switch drawerRoot {
+        case nil: return { isShowingDrawer = false; openSearch() }
+        case .scheduled?: return { isShowingDrawer = false; scheduledSearchIsActive = true }
+        default: return nil
+        }
+    }
+
     /// Sessions, or the menu item picked from the drawer, with the drawer over it.
     private var compactRoot: some View {
         Group {
             if let drawerRoot {
                 utilityDestination(drawerRoot)
+                    .verityLargeTitle(Self.drawerTitle(drawerRoot))
                     .toolbar {
                         if !hasSideRail {
                             ToolbarItem(placement: .topBarLeading) {
@@ -644,8 +695,22 @@ struct SessionListView: View {
                         }
                     }
                     .navigationBarBackButtonHidden(true)
+                    .onDisappear { scheduledSearchIsActive = false }
             } else {
                 sessionListSurface
+                    .verityLargeTitle("Sessions")
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        if hasSideRail, searchChromeIsExpanded {
+                            BottomSearchBar(text: $searchText, isFocused: $searchFieldIsFocused, close: closeSearch)
+                                .onAppear { searchFieldIsFocused = true }
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+                    }
+            }
+        }
+        .sheet(isPresented: $isPresentingNewScheduledTask) {
+            NewScheduledTaskSheet(server: server, onAPIError: authManager.handleAPIError) {
+                Task { await loadSessionRows() }
             }
         }
         .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer) { drawerMenu } }
@@ -686,6 +751,7 @@ struct SessionListView: View {
                 autoStartsVoiceInput: route.autoStartsVoiceInput,
                 profileName: route.profileName,
                 projectID: route.projectID,
+                restoredSession: navigationState.newChatSession,
                 server: server,
                 viewModel: viewModel,
                 onAPIError: authManager.handleAPIError,
@@ -734,7 +800,9 @@ struct SessionListView: View {
                         ? navigationState.selectedSessionID
                         : nil,
                     actions: sessionRowActions(toastHost: .scheduled),
-                    actionToast: archiveToastRoute.host == .scheduled ? actionToast : nil
+                    actionToast: archiveToastRoute.host == .scheduled ? actionToast : nil,
+                    bottomSearchIsActive: hasSideRail ? $scheduledSearchIsActive : nil,
+                    newTask: drawerRoot == .scheduled && !hasSideRail ? { isPresentingNewScheduledTask = true } : nil
                 )
                 .onDisappear {
                     if archiveToastRoute.host == .scheduled {
@@ -782,7 +850,8 @@ struct SessionListView: View {
                 utilityRows(topPadding: 10, closingDrawer: false)
             }
 
-            if groups.showsDisclosure(isSearchActive: isSearchingSessions) {
+            if groups.showsDisclosure(isSearchActive: isSearchingSessions),
+               horizontalSizeClass == .regular || isSearchingSessions {
                 ScheduledSessionsDisclosure(
                     viewModel: viewModel,
                     searchText: searchText,
@@ -813,7 +882,8 @@ struct SessionListView: View {
                     ? navigationState.selectedSessionID
                     : nil,
                 actions: sessionRowActions(),
-                suppressEmptyState: !groups.scheduled.isEmpty
+                suppressEmptyState: !groups.scheduled.isEmpty,
+                hidesTitle: horizontalSizeClass != .regular
             )
 
             if showsArchivedEntry {
@@ -872,6 +942,7 @@ struct SessionListView: View {
                 }
             },
             selectedDestination: closingDrawer ? drawerRoot : nil,
+            showsScheduledSessions: closingDrawer && showsCronSessions,
             switchActiveProfile: { profile in
                 if closingDrawer { isShowingDrawer = false }
                 Task { await switchActiveProfile(profile) }
@@ -916,10 +987,11 @@ struct SessionListView: View {
                 addServer: { isPresentingAddServer = true },
                 manageServers: { selectDestination(.settings) }
             ),
-            field: SessionsHeader.Field(
+            field: hasSideRail ? nil : SessionsHeader.Field(
                 isExpanded: searchChromeIsExpanded, text: $searchText, isFocused: $searchFieldIsFocused, close: closeSearch
             ),
             menu: horizontalSizeClass == .regular || hasSideRail ? nil : { isShowingDrawer = true },
+            showsPill: !hasSideRail,
             openSearch: openSearch
         )
         .onChange(of: searchFieldIsFocused) { _, newValue in
@@ -1936,6 +2008,8 @@ private struct PendingNewChatView: View {
 
     @State private var attachmentLease: ChatDraftAttachmentLease?
     @State private var createdSession: SessionSummary?
+    /// Set when this screen was rebuilt around a session it had already created.
+    @State private var isRestoredSession = false
     @State private var draftMessage = ""
     @State private var draftQuotes: [ComposerQuote] = []
     @State private var didStartCreation = false
@@ -1951,6 +2025,7 @@ private struct PendingNewChatView: View {
         autoStartsVoiceInput: Bool = false,
         profileName: String? = nil,
         projectID: String? = nil,
+        restoredSession: SessionSummary? = nil,
         server: URL,
         viewModel: SessionListViewModel,
         onAPIError: @escaping (Error) -> Void,
@@ -1968,6 +2043,9 @@ private struct PendingNewChatView: View {
         self.projectID = projectID
         self.draftStore = draftStore ?? .shared
         _draftMessage = State(initialValue: initialDraft)
+        _createdSession = State(initialValue: restoredSession)
+        _isRestoredSession = State(initialValue: restoredSession != nil)
+        _didStartCreation = State(initialValue: restoredSession != nil)
     }
 
     var body: some View {
@@ -1981,7 +2059,7 @@ private struct PendingNewChatView: View {
                     initialQuotes: draftQuotes,
                     initialAttachments: initialAttachments,
                     shareNotice: shareNotice,
-                    loadsInitialMessages: false,
+                    loadsInitialMessages: isRestoredSession,
                     autoStartsVoiceInput: autoStartsVoiceInput,
                     draftStore: draftStore,
                     restoresDraftSettings: true,

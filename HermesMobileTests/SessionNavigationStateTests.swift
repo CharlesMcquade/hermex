@@ -5,6 +5,29 @@ import XCTest
 @testable import HermesMobile
 
 final class SessionNavigationStateTests: XCTestCase {
+    /// A new chat's created session survives the screen rebuild an outer↔inner screen
+    /// switch causes, so the rebuilt New Chat reopens it rather than creating another.
+    func testNewChatKeepsItsCreatedSessionUntilNavigationMovesOn() {
+        var state = SessionNavigationState()
+        state.select(PendingNewChatRoute(projectID: nil))
+        let created = SessionSummary(sessionId: "made", title: "Made")
+        state.remember(created)
+        XCTAssertEqual(state.newChatSession?.sessionId, "made")
+
+        state.select(PendingNewChatRoute(projectID: nil))
+        XCTAssertNil(state.newChatSession)
+    }
+
+    func testRelaunchResumesOnlyWithinTheWindow() {
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        let left = Date(timeIntervalSince1970: 1_000_000)
+        SessionNavigationPersistence.markBackgrounded(defaults: defaults, now: left)
+
+        XCTAssertTrue(SessionNavigationPersistence.wasRecentlyBackgrounded(defaults: defaults, now: left.addingTimeInterval(60)))
+        XCTAssertFalse(SessionNavigationPersistence.wasRecentlyBackgrounded(
+            defaults: defaults, now: left.addingTimeInterval(SessionNavigationPersistence.resumeWindow + 1)))
+    }
     /// A Hermes row (#1046) is known by its lineage root and opens its own id, which on a
     /// legacy compression chain is the tip, in the row's Profile. A webui row opens no Hermes chat.
     func testAHermesRowOpensItsOwnIDInItsProfile() {

@@ -415,3 +415,38 @@ struct StatusBadge: View {
             .lineLimit(1)
     }
 }
+
+
+/// Creates a Task (cron job) from outside the Tasks screen, e.g. the Scheduled
+/// sessions root's + button. Owns its own Tasks model for the create call.
+struct NewScheduledTaskSheet: View {
+    let server: URL
+    let onAPIError: (Error) -> Void
+    let onCreated: () -> Void
+    @State private var viewModel: TasksViewModel
+
+    init(server: URL, onAPIError: @escaping (Error) -> Void, onCreated: @escaping () -> Void) {
+        self.server = server
+        self.onAPIError = onAPIError
+        self.onCreated = onCreated
+        _viewModel = State(initialValue: TasksViewModel(server: server, client: nil))
+    }
+
+    var body: some View {
+        CronJobEditorSheet(
+            title: String(localized: "New Task"),
+            server: server,
+            draft: CronJobEditorDraft(profile: ""),
+            saveTitle: String(localized: "Create"),
+            isSaving: viewModel.isMutating,
+            errorMessage: viewModel.actionErrorMessage,
+            deliveryOptions: viewModel.deliveryOptions,
+            client: viewModel.client
+        ) { draft in
+            let didCreate = await viewModel.create(from: draft)
+            if let lastError = viewModel.lastError { onAPIError(lastError) }
+            if didCreate { onCreated() }
+            return didCreate
+        }
+    }
+}

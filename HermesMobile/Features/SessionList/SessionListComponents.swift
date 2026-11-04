@@ -256,6 +256,8 @@ struct SessionsHeader: View {
     /// Opens the compact home's drawer. nil on split layouts, whose sidebar is
     /// already the menu — the hamburger shows only when this is set.
     var menu: (() -> Void)? = nil
+    /// False while the side rail carries search and the avatar; the pill returns while searching.
+    var showsPill = true
     /// What the list's rows say about the connection, for the status line (#1374).
     var connection = HomeConnectionStatus.Facts()
     var reconnectNow: () -> Void = {}
@@ -278,19 +280,23 @@ struct SessionsHeader: View {
                     .accessibilityLabel(Text("Open menu"))
                 }
 
-                HermesHeaderLogo(selectedColor: logoColor)
-                    .frame(width: isExpanded ? 0 : 160, alignment: .leading)
+                Color.clear
+                    .frame(width: 0, height: 0)
                     .opacity(isExpanded ? 0 : 1)
                     .clipped()
                     .accessibilityHidden(isExpanded)
 
-                pill
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                if showsPill || isExpanded {
+                    pill
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                } else {
+                    Spacer(minLength: 0)
+                }
             }
             HomeConnectionStatusLine(driver: connectionStatus, reconnectNow: reconnectNow)
         }
         .padding(.horizontal, 24)
-        .padding(.top, 28)
+        .padding(.top, menu == nil && !showsPill && !isExpanded ? 0 : 28)
         .animation(SessionListMotion.searchChromeAnimation(reduceMotion: reduceMotion), value: isExpanded)
         .animation(SessionListMotion.searchFocusAnimation(reduceMotion: reduceMotion), value: showsClearButton)
         .drivesHomeConnectionStatus(connectionStatus, connection: connection)
@@ -484,6 +490,8 @@ struct SessionSidebarUtilityRows: View {
     let openDestination: (SessionListUtilityDestination) -> Void
     /// The menu item showing as the home's root screen, highlighted in the drawer.
     var selectedDestination: SessionListUtilityDestination? = nil
+    /// Lists Scheduled sessions as their own menu screen (the compact drawer).
+    var showsScheduledSessions = false
     let switchActiveProfile: (ProfileSummary) -> Void
     let presentProjectCreation: () -> Void
 
@@ -550,6 +558,12 @@ struct SessionSidebarUtilityRows: View {
             if sectionVisibility.bots {
                 SidebarNavButton(title: String(localized: "Bots"), assetImage: "LucideBot", isSelected: selectedDestination == .bots) {
                     openDestination(.bots)
+                }
+            }
+
+            if showsScheduledSessions {
+                SidebarNavButton(title: String(localized: "Scheduled"), assetImage: "LucideCalendarClock", isSelected: selectedDestination == .scheduled) {
+                    openDestination(.scheduled)
                 }
             }
 
@@ -854,6 +868,8 @@ struct SessionListRowsSection: View {
     let selectedSessionID: String?
     let actions: SessionListRowActions
     var suppressEmptyState = false
+    /// Drops the small "Sessions" label when the navigation bar already titles the screen.
+    var hidesTitle = false
     /// A Hermes list shows a refusal the user has to act on over the rows too (#1374).
     var showsErrorOverRows = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -954,7 +970,7 @@ struct SessionListRowsSection: View {
     private var sessionsHeaderRow: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
-                if !isSearchActive {
+                if !isSearchActive, !hidesTitle {
                     Text("Sessions")
                         .font(.system(size: sectionHeaderSize))
                         .foregroundStyle(.primary)
@@ -1263,10 +1279,41 @@ struct ScheduledSessionsView: View {
     let actions: SessionListRowActions
     /// The archive Undo toast, when an archive on this screen owns it (#865).
     let actionToast: ActionToastState?
+    /// Set on the rail layout: search lives in a bottom field the rail opens, not the nav bar.
+    var bottomSearchIsActive: Binding<Bool>? = nil
+    /// Adds a scheduled Task (cron job) from the nav bar, when this is a menu root without the rail.
+    var newTask: (() -> Void)? = nil
 
     @State private var searchText = ""
+    @FocusState private var bottomSearchFocused: Bool
 
     var body: some View {
+        if let bottomSearchIsActive {
+            list
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    if bottomSearchIsActive.wrappedValue {
+                        BottomSearchBar(text: $searchText, isFocused: $bottomSearchFocused) {
+                            searchText = ""
+                            bottomSearchFocused = false
+                            bottomSearchIsActive.wrappedValue = false
+                        }
+                        .onAppear { bottomSearchFocused = true }
+                    }
+                }
+        } else {
+            list
+                .searchable(text: $searchText, prompt: "Search sessions")
+                .toolbar {
+                    if let newTask {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(action: newTask) { Label("New Task", systemImage: "plus") }
+                        }
+                    }
+                }
+        }
+    }
+
+    private var list: some View {
         List {
             if sessions.isEmpty {
                 SessionListStatusRow(
@@ -1307,7 +1354,6 @@ struct ScheduledSessionsView: View {
         .environment(\.defaultMinListRowHeight, 0)
         .scrollContentBackground(.hidden)
         .navigationTitle("Scheduled sessions")
-        .searchable(text: $searchText, prompt: "Search sessions")
         .task(id: searchText) {
             if viewModel.isHermes { await viewModel.searchSessions(query: searchText) }
         }
@@ -1719,6 +1765,7 @@ struct SidebarNavButton: View {
                     .font(.body.weight(isSelected ? .bold : .semibold))
                     .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                     .lineLimit(1)
+                    .sidebarSelectedGlow(isSelected)
 
                 Spacer(minLength: 0)
             }
@@ -1839,20 +1886,13 @@ struct SidebarSubrowSelectionStyle: ViewModifier {
 /// edge, and no outline (outlines read as stray lines on the translucent panel).
 struct SidebarSelectionHighlight: View {
     let isSelected: Bool
+    var body: some View { EmptyView() }
+}
 
-    var body: some View {
-        if isSelected {
-            let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-            shape
-                .fill(Color.accentColor.opacity(0.12))
-                .overlay {
-                    shape.fill(LinearGradient(
-                        colors: [Color.white.opacity(0.10), .clear],
-                        startPoint: .top, endPoint: .center
-                    ))
-                }
-                .shadow(color: Color.accentColor.opacity(0.22), radius: 8, y: 2)
-        }
+extension View {
+    /// The menu's selected item: accent and bold carry it, with a faint glow.
+    func sidebarSelectedGlow(_ isSelected: Bool) -> some View {
+        shadow(color: isSelected ? Color.accentColor.opacity(0.55) : .clear, radius: isSelected ? 6 : 0)
     }
 }
 
@@ -2385,4 +2425,54 @@ private struct SessionsScreenListRow: ViewModifier {
 
 extension EnvironmentValues {
     @Entry var sessionsRowsAreClear = false
+}
+
+
+/// A Safari-style search field pinned above the keyboard (and the screen's bottom once
+/// the keyboard goes), for the rail layout where the top of the screen is a reach.
+struct BottomSearchBar: View {
+    @Binding var text: String
+    var isFocused: FocusState<Bool>.Binding
+    var prompt: LocalizedStringKey = "Search sessions"
+    let close: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField(prompt, text: $text)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .focused(isFocused)
+                .onSubmit { isFocused.wrappedValue = false }
+            if !text.isEmpty {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(minHeight: 44)
+        .sessionsChromeGlass(isInteractive: true, in: Capsule())
+        .overlay(alignment: .trailing) { EmptyView() }
+        .padding(.leading, 12)
+        .padding(.trailing, 4)
+        .padding(.bottom, 8)
+        .safeAreaInset(edge: .trailing, spacing: 0) {
+            Button(action: close) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 44, height: 44)
+                    .sessionsChromeGlass(isInteractive: true, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 12)
+            .padding(.bottom, 8)
+            .accessibilityLabel("Close search")
+        }
+    }
 }
