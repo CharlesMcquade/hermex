@@ -152,7 +152,8 @@ struct MessageComposerView: View {
 
     /// t3code sizing: every circle in the composer is 44 pt, which is also the
     /// minimum hit target, so no invisible hit padding is needed.
-    private let circleSize = ChatComposerMetrics.actionSize
+    /// Send and the mic sit inside the Messages-style pill (`compactSurface`).
+    private let circleSize: CGFloat = 30
     private let pillInset = ChatComposerMetrics.pillInset
 
     /// The draft. Pass the owner's plain `$state`, not a get/set binding:
@@ -656,10 +657,11 @@ struct MessageComposerView: View {
                 .animation(ChatMotion.quickState(reduceMotion: reduceMotion), value: showsSlashAutocomplete)
                 .animation(ChatMotion.quickState(reduceMotion: reduceMotion), value: showsFileAutocomplete)
 
-                composerSurface
-                    .padding(.horizontal)
+                compactSurface
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 4)
 
-                if isExpanded {
+                if isExpanded, !runtimeControlsOnRail {
                     toolbarRow
                         .padding(.horizontal)
                         .padding(.top, 8)
@@ -979,106 +981,122 @@ struct MessageComposerView: View {
     /// The glass surface: one text view in both states so focus and the draft
     /// survive the morph. Pill: text, thumbnails, mic, Stop/Send in a row.
     /// Card: strip above the editor, controls move to `toolbarRow` below.
-    private var composerSurface: some View {
-        VStack(spacing: 0) {
-            if isExpanded {
-                ComposerAttachmentStripView(
-                    attachments: pendingAttachments,
-                    onRemove: onRemoveAttachment,
-                    onPreview: onPreviewAttachment
-                )
-                .transition(.opacity)
+    private func textInput(
+        isCollapsed: Bool,
+        verticalPadding: CGFloat,
+        minimumHeight: CGFloat = ComposerTextInputHeight.expandedMinimum,
+        horizontalPadding: CGFloat = 16
+    ) -> some View {
+        ComposerTextInputView(
+            text: Binding(get: { draftMessage }, set: editDraft),
+            selection: $composerSelection,
+            isFocused: $isFocused,
+            inputHeight: $textInputHeight,
+            measuredHeight: $textFieldHeight,
+            isDisabled: isReadOnly,
+            isCollapsed: isCollapsed,
+            keyboardCommands: keyboardCommands,
+            verticalPadding: verticalPadding,
+            chipSkills: skillSuggestions,
+            chipFilePaths: chipFilePaths,
+            chipBots: botMentions?.chipReferences(avatars: mentionAvatars) ?? [:],
+            quotes: quotes,
+            onPasteFileProviders: onPasteFileProviders,
+            onPasteFileURLs: onPasteFileURLs,
+            onPasteImageProviders: onPasteImageProviders,
+            onPasteImages: onPasteImages,
+            onTapChip: { token in
+                // A skill chip is inert; a file chip opens the file.
+                guard let path = token.filePath else { return }
+                onOpenFileReference(path)
+            },
+            onTapQuote: presentQuote,
+            onRemoveQuote: removeQuote,
+            recallLastSentText: recallLastSentText,
+            onPasteLargeText: onPasteLargeText,
+            minimumExpandedHeight: minimumHeight,
+            horizontalPadding: horizontalPadding
+        )
+    }
+
+    /// The composer, shaped like Messages: + beside a pill whose editor starts at
+    /// one line and grows with the text, with the mic and Send inside. Runtime
+    /// controls sit in `toolbarRow` under it, or on the side rail when there is one.
+    private var compactSurface: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            Button {
+                showMediaPicker = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(metaControlColor)
+                    .frame(width: 36, height: 36)
+                    .adaptiveGlass(.regular, isInteractive: true, fallbackMaterial: .ultraThinMaterial, in: Circle())
+                    .clipShape(Circle())
             }
+            .buttonStyle(.plain)
+            .disabled(isConfigurationControlDisabled)
+            .accessibilityLabel("Composer options")
 
-            HStack(alignment: .center, spacing: 4) {
-                ComposerTextInputView(
-                    text: Binding(get: { draftMessage }, set: editDraft),
-                    selection: $composerSelection,
-                    isFocused: $isFocused,
-                    inputHeight: $textInputHeight,
-                    measuredHeight: $textFieldHeight,
-                    isDisabled: isReadOnly,
-                    isCollapsed: !isExpanded,
-                    keyboardCommands: keyboardCommands,
-                    verticalPadding: 12,
-                    chipSkills: skillSuggestions,
-                    chipFilePaths: chipFilePaths,
-                    chipBots: botMentions?.chipReferences(avatars: mentionAvatars) ?? [:],
-                    quotes: quotes,
-                    onPasteFileProviders: onPasteFileProviders,
-                    onPasteFileURLs: onPasteFileURLs,
-                    onPasteImageProviders: onPasteImageProviders,
-                    onPasteImages: onPasteImages,
-                    onTapChip: { token in
-                        // A skill chip is inert; a file chip opens the file.
-                        guard let path = token.filePath else { return }
-                        onOpenFileReference(path)
-                    },
-                    onTapQuote: presentQuote,
-                    onRemoveQuote: removeQuote,
-                    recallLastSentText: recallLastSentText,
-                    onPasteLargeText: onPasteLargeText
-                )
-
-                if !isExpanded {
-                    ComposerAttachmentPillPreview(
+            VStack(spacing: 0) {
+                if !pendingAttachments.isEmpty {
+                    ComposerAttachmentStripView(
                         attachments: pendingAttachments,
+                        onRemove: onRemoveAttachment,
                         onPreview: onPreviewAttachment
                     )
+                }
 
-                    voiceControlButton
+                HStack(alignment: .bottom, spacing: 0) {
+                    textInput(isCollapsed: false, verticalPadding: 7, minimumHeight: 22, horizontalPadding: 12)
+
+                    voiceControlButton(size: 30)
+                        .padding(.bottom, 3)
 
                     actionButton
+                        .padding(.bottom, 3)
                 }
+                .padding(.trailing, 3)
             }
-            .padding(.trailing, isExpanded ? 0 : pillInset)
-            .padding(.vertical, isExpanded ? 0 : pillInset)
+            .modifier(ChatComposerSurfaceStyle(isExpanded: false, cornerRadius: 18))
         }
-        .padding(.top, isExpanded ? 2 : 0)
-        .padding(.bottom, isExpanded ? 4 : 0)
-        .modifier(ChatComposerSurfaceStyle(isExpanded: isExpanded))
     }
 
     /// Card-state row under the surface: a scroller of secondary controls plus
     /// the pinned Stop/Send circle. Visual order is VoiceOver order.
     private var toolbarRow: some View {
-        HStack(alignment: .center, spacing: 8) {
-            ComposerToolbarScroller {
-                composerPlusMenu
+        ComposerToolbarScroller {
+            if showsSessionControls || showsModelAndProfileControls {
+                modelEffortControl
 
-                if !runtimeControlsOnRail, showsSessionControls || showsModelAndProfileControls {
-                    modelEffortControl
+                workspaceSelector
 
-                    workspaceSelector
+                profileSelector
 
-                    profileSelector
-
-                    if let fastMode {
-                        ComposerFastModeButton(
-                            isOn: fastMode, isDisabled: isConfigurationControlDisabled || !mayChangeFastMode, color: metaControlColor,
-                            controlFont: metaControlFont, chevronFont: metaChevronFont, onSelect: onSelectFastMode
-                        )
-                    }
-
-                    gitBranchPicker
+                if let fastMode {
+                    ComposerFastModeButton(
+                        isOn: fastMode, isDisabled: isConfigurationControlDisabled || !mayChangeFastMode, color: metaControlColor,
+                        controlFont: metaControlFont, chevronFont: metaChevronFont, onSelect: onSelectFastMode
+                    )
                 }
 
-                voiceControlButton
-
-                ContextWindowIndicatorView(snapshot: contextWindowSnapshot)
-                    .padding(.horizontal, 4)
+                gitBranchPicker
             }
 
-            actionButton
+            ContextWindowIndicatorView(snapshot: contextWindowSnapshot)
+                .padding(.horizontal, 4)
         }
     }
 
-    private var voiceControlButton: some View {
+    private var voiceControlButton: some View { voiceControlButton(size: 44) }
+
+    private func voiceControlButton(size: CGFloat) -> some View {
         ComposerVoiceControlButton(
             isListening: voiceInput.isListening,
             isDisabled: isVoiceInputDisabled,
             color: metaControlColor,
             isRecordingVoiceNote: voiceNoteRecorder.isRecording,
+            size: size,
             onTap: toggleVoiceInput,
             onRecordingStart: startVoiceNoteRecording,
             onRecordingDragChanged: { height in
@@ -1125,7 +1143,7 @@ struct MessageComposerView: View {
             // Morphs between Stop and the default's Send glyph; instant
             // with Reduce Motion.
             Image(systemName: sendButton.systemName)
-                .font(.system(size: actionIconSize, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
         }
     }
@@ -1217,31 +1235,6 @@ struct MessageComposerView: View {
         case .models, .reasoningLevels, .goalActions, .none:
             break
         }
-    }
-
-    private var composerPlusMenu: some View {
-        Button {
-            showMediaPicker = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: plusIconSize, weight: .medium))
-                .foregroundStyle(metaControlColor)
-                .frame(width: circleSize, height: circleSize)
-                // Inside the masked toolbar scroller, like the context ring.
-                .adaptiveGlass(
-                    .regular,
-                    isInteractive: true,
-                    fallbackMaterial: .ultraThinMaterial,
-                    inheritsClipping: true,
-                    in: Circle()
-                )
-                .clipShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .tint(metaControlColor)
-        .disabled(isConfigurationControlDisabled)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Composer options")
     }
 
     @ViewBuilder

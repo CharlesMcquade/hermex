@@ -30,6 +30,8 @@ struct ComposerVoiceControlButton: View {
     let color: Color
     let isRecordingVoiceNote: Bool
     var supportsVoiceNotes = true
+    /// 44 in the card toolbar; smaller inside the outer screen's compact pill.
+    var size: CGFloat = 44
     let onTap: () -> Void
     let onRecordingStart: () -> Void
     let onRecordingDragChanged: (CGFloat) -> Void
@@ -68,8 +70,8 @@ struct ComposerVoiceControlButton: View {
 
     private var label: some View {
         Image(systemName: symbolName)
-            .font(.system(size: 18, weight: .regular))
-            .frame(width: 44, height: 44)
+            .font(.system(size: size >= 44 ? 18 : 16, weight: .regular))
+            .frame(width: size, height: size)
             .foregroundStyle(isListening || isRecordingVoiceNote ? Color.red : color)
             .scaleEffect(reduceMotion ? 1 : (isRecordingVoiceNote ? 1.3 : 1))
             .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: isRecordingVoiceNote)

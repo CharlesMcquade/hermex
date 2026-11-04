@@ -10,11 +10,12 @@ enum ChatComposerMetrics {
 struct ChatComposerSurfaceStyle: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     let isExpanded: Bool
+    var cornerRadius: CGFloat? = nil
 
     private var shape: RoundedRectangle {
         RoundedRectangle(
-            cornerRadius: isExpanded ? ChatComposerMetrics.cardCornerRadius
-                : (ChatComposerMetrics.actionSize + ChatComposerMetrics.pillInset * 2) / 2,
+            cornerRadius: cornerRadius ?? (isExpanded ? ChatComposerMetrics.cardCornerRadius
+                : (ChatComposerMetrics.actionSize + ChatComposerMetrics.pillInset * 2) / 2),
             style: .continuous
         )
     }

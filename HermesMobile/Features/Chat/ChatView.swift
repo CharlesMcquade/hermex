@@ -2393,9 +2393,29 @@ struct ChatView: View {
                 }
                 .disabled(busy)
             }
+            if let snapshot = viewModel.contextWindowSnapshot, let percentage = snapshot.percentage {
+                Section {
+                    Label {
+                        Text("Context \(Int(percentage * 100))%")
+                        Text(ContextWindowFormatter.tokensLabel(from: snapshot))
+                    } icon: { Image(systemName: "gauge.with.dots.needle.33percent") }
+                }
+            }
         } label: {
-            Label("Chat settings", systemImage: skips ? "bolt.slash.fill" : "slider.horizontal.3")
-                .foregroundStyle(skips ? Color.orange : Color.primary)
+            // Idle, the button is the context ring; while a response runs (or when
+            // approvals are skipped) it is the plain icon and context sits in the menu.
+            if !skips, viewModel.activeStreamID == nil,
+               let percentage = viewModel.contextWindowSnapshot?.percentage {
+                Label {
+                    Text("Chat settings")
+                } icon: {
+                    Image(uiImage: RailContextRingImage.make(percentage: percentage))
+                        .renderingMode(.template)
+                }
+            } else {
+                Label("Chat settings", systemImage: skips ? "bolt.slash.fill" : "slider.horizontal.3")
+                    .foregroundStyle(skips ? Color.orange : Color.primary)
+            }
         }
         .accessibilityValue(skips ? Text("Approvals skipped") : Text(""))
     }
@@ -2648,7 +2668,11 @@ struct ChatView: View {
     }
 
     private var transcriptBottomInsetHeight: CGFloat {
-        max(96, composerHeight + 44 + composerAccessorySpacerHeight + clarificationFootprintHeight)
+        // With the composer folded into the side rail, the transcript runs to the bottom.
+        if collapsesComposerToRail {
+            return 16 + composerAccessorySpacerHeight + clarificationFootprintHeight
+        }
+        return max(96, composerHeight + 44 + composerAccessorySpacerHeight + clarificationFootprintHeight)
     }
 
     private var scrollToBottomButtonBottomPadding: CGFloat {
@@ -4875,3 +4899,27 @@ private struct HermesFilePreviewItem: Identifiable {
     var isSentAttachment = false
 }
 
+
+
+/// The rail's Chat settings icon while idle: a context ring with the percentage.
+/// Toolbar menu labels draw only images, so the ring is rendered to one.
+enum RailContextRingImage {
+    @MainActor static func make(percentage: Double) -> UIImage {
+        let size: CGFloat = 24
+        let clamped = min(max(percentage, 0), 1)
+        let ring = ZStack {
+            Circle().stroke(Color.black.opacity(0.25), lineWidth: 2.5)
+            Circle().trim(from: 0, to: clamped)
+                .stroke(Color.black, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Text("\(Int(clamped * 100))")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Color.black)
+        }
+        .frame(width: size, height: size)
+        .padding(1.5)
+        let renderer = ImageRenderer(content: ring)
+        renderer.scale = UIScreen.main.scale
+        return renderer.uiImage ?? UIImage(systemName: "slider.horizontal.3")!
+    }
+}

@@ -12,8 +12,12 @@ enum ComposerTextInputHeight {
     /// on the editor rather than dead space; about three lines at default size.
     static let expandedMinimum: CGFloat = 72
 
-    static func expanded(measured: CGFloat, verticalSizeClass: UserInterfaceSizeClass?) -> CGFloat {
-        verticalSizeClass == .compact ? expandedMinimum : max(expandedMinimum, measured)
+    static func expanded(
+        measured: CGFloat,
+        verticalSizeClass: UserInterfaceSizeClass?,
+        minimum: CGFloat = expandedMinimum
+    ) -> CGFloat {
+        verticalSizeClass == .compact ? minimum : max(minimum, measured)
     }
 }
 
@@ -66,6 +70,9 @@ struct ComposerTextInputView: View {
     /// Text-only clients reject file/image paste and drop before invoking callbacks.
     var acceptsAttachments = true
     private let collapsedLineHeight: CGFloat = 22
+    /// The compact pill passes one line, so the editor starts small and grows.
+    var minimumExpandedHeight: CGFloat = ComposerTextInputHeight.expandedMinimum
+    var horizontalPadding: CGFloat = 16
 
     var body: some View {
         ZStack(alignment: isCollapsed ? .leading : .topLeading) {
@@ -97,9 +104,11 @@ struct ComposerTextInputView: View {
             // in iPhone landscape, where the text scrolls inside it.
             .frame(height: isCollapsed
                 ? collapsedLineHeight
-                : ComposerTextInputHeight.expanded(measured: inputHeight, verticalSizeClass: verticalSizeClass))
+                : ComposerTextInputHeight.expanded(
+                    measured: inputHeight, verticalSizeClass: verticalSizeClass, minimum: minimumExpandedHeight
+                ))
             .padding(.vertical, isCollapsed ? 0 : verticalPadding)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, horizontalPadding)
             .opacity(isCollapsed ? 0 : 1)
             .allowsHitTesting(!isCollapsed)
             .accessibilityHidden(isCollapsed)
@@ -110,7 +119,7 @@ struct ComposerTextInputView: View {
                     chips: renderedChips,
                     placeholder: placeholder
                 )
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, horizontalPadding)
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -121,7 +130,7 @@ struct ComposerTextInputView: View {
             } else if text.isEmpty && quotes.isEmpty {
                 Text(placeholder)
                     .foregroundStyle(Color(.placeholderText))
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, horizontalPadding)
                     .padding(.vertical, verticalPadding)
                     .allowsHitTesting(false)
             }
@@ -240,6 +249,8 @@ private struct ComposerTextView: UIViewRepresentable {
         textView.font = .preferredFont(forTextStyle: .body)
         textView.adjustsFontForContentSizeCategory = true
         textView.isScrollEnabled = true
+        // Bounces even when the text fits, so a downward drag can dismiss the keyboard.
+        textView.alwaysBounceVertical = true
         textView.textContainerInset = .zero
         textView.textContainer.lineFragmentPadding = 0
         textView.textContentType = .none
@@ -536,6 +547,14 @@ private struct ComposerTextView: UIViewRepresentable {
             if !isFocused {
                 isFocused = true
             }
+        }
+
+        /// Like Messages: pulling the editor down past its top dismisses the keyboard,
+        /// so the transcript doesn't have to be scrolled (and overshot) to do it.
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            guard scrollView.isTracking, scrollView.isFirstResponder,
+                  scrollView.contentOffset.y + scrollView.adjustedContentInset.top < -16 else { return }
+            scrollView.resignFirstResponder()
         }
 
         func textViewDidEndEditing(_ textView: UITextView) {
