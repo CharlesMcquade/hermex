@@ -114,6 +114,7 @@ struct SessionListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var isShowingDrawer = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var viewModel: SessionListViewModel
@@ -617,6 +618,7 @@ struct SessionListView: View {
             }
             .padding(.horizontal, 24)
         }
+        .overlay { HomeDrawerOverlay(isOpen: $isShowingDrawer) { drawerMenu } }
         // The Move question waits for this list: hidden under a pushed chat or a closed sidebar.
         .onAppear { MoveToHermesNotices.shared.noteChatList(of: server.absoluteString, onScreen: true) }
         .onDisappear { MoveToHermesNotices.shared.noteChatList(of: server.absoluteString, onScreen: false) }
@@ -747,25 +749,10 @@ struct SessionListView: View {
                     .sessionsScreenListRow()
             }
 
-            if !isSearchingSessions {
-                SessionSidebarUtilityRows(
-                    viewModel: viewModel,
-                    topPadding: 10,
-                    automatedVisibility: automatedSessionVisibility,
-                    sectionVisibility: sidebarSectionVisibility,
-                    profilesAreExpanded: $profilesAreExpanded,
-                    projectsAreExpanded: $projectsAreExpanded,
-                    selectedProjectID: $selectedProjectID,
-                    projectPendingDeletion: $projectPendingDeletion,
-                    projectPendingRename: $projectPendingRename,
-                    openDestination: selectDestination,
-                    switchActiveProfile: { profile in
-                        Task { await switchActiveProfile(profile) }
-                    },
-                    presentProjectCreation: {
-                        isPresentingProjectCreation = true
-                    }
-                )
+            // On compact these sections live in the home drawer instead; the split
+            // sidebar keeps them inline, where they are already the menu.
+            if !isSearchingSessions, horizontalSizeClass == .regular {
+                utilityRows(topPadding: 10, closingDrawer: false)
             }
 
             if groups.showsDisclosure(isSearchActive: isSearchingSessions) {
@@ -834,6 +821,53 @@ struct SessionListView: View {
         .animation(SessionListMotion.disclosureAnimation(reduceMotion: reduceMotion), value: scheduledSessionsAreExpanded)
     }
 
+    /// The utility sections, inline in the split sidebar or inside the compact
+    /// drawer, where a selection also closes the drawer.
+    private func utilityRows(topPadding: CGFloat, closingDrawer: Bool) -> some View {
+        SessionSidebarUtilityRows(
+            viewModel: viewModel,
+            topPadding: topPadding,
+            automatedVisibility: automatedSessionVisibility,
+            sectionVisibility: sidebarSectionVisibility,
+            profilesAreExpanded: $profilesAreExpanded,
+            projectsAreExpanded: $projectsAreExpanded,
+            selectedProjectID: Binding(
+                get: { selectedProjectID },
+                set: { selectedProjectID = $0; if closingDrawer { isShowingDrawer = false } }),
+            projectPendingDeletion: $projectPendingDeletion,
+            projectPendingRename: $projectPendingRename,
+            openDestination: { destination in
+                if closingDrawer { isShowingDrawer = false }
+                selectDestination(destination)
+            },
+            switchActiveProfile: { profile in
+                if closingDrawer { isShowingDrawer = false }
+                Task { await switchActiveProfile(profile) }
+            },
+            presentProjectCreation: {
+                isPresentingProjectCreation = true
+            }
+        )
+    }
+
+    /// The compact home drawer: the sections the split sidebar lists inline.
+    private var drawerMenu: some View {
+        List {
+            Section {
+                HomeDrawerEntry(title: String(localized: "Sessions"), systemImage: "bubble.left.and.bubble.right",
+                                isActive: true) {
+                    isShowingDrawer = false
+                }
+            }
+            Section {
+                utilityRows(topPadding: 4, closingDrawer: true)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 0)
+    }
+
     private var header: some View {
         SessionsHeader(
             logoColor: selectedHeaderLogoColor,
@@ -850,6 +884,7 @@ struct SessionListView: View {
             field: SessionsHeader.Field(
                 isExpanded: searchChromeIsExpanded, text: $searchText, isFocused: $searchFieldIsFocused, close: closeSearch
             ),
+            menu: horizontalSizeClass == .regular ? nil : { isShowingDrawer = true },
             openSearch: openSearch
         )
         .onChange(of: searchFieldIsFocused) { _, newValue in

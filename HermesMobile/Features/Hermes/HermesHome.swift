@@ -125,7 +125,7 @@ struct HomeDrawerOverlay<Menu: View>: View {
         menu()
             .frame(width: HomeDrawerMetrics.panelWidth)
             .frame(maxHeight: .infinity, alignment: .top)
-            .background(.thickMaterial, ignoresSafeAreaEdges: .vertical)
+            .background(Color(.systemBackground), ignoresSafeAreaEdges: .vertical)
             .overlay(alignment: .trailing) {
                 Color(.separator).opacity(0.5).frame(width: 0.5)
                     .ignoresSafeArea(.container, edges: .vertical)
