@@ -89,12 +89,8 @@ struct SettingsAboutPage: View {
                     return .systemAction(url)
                 })
 
-                SettingsExternalLink(
-                    title: String(localized: "Rate Verity"),
-                    systemImage: "star",
-                    destination: AppConfig.writeReviewURL,
-                    accessibilityLabel: String(localized: "Rate Verity, opens the App Store")
-                )
+                // Verity is a personal build with no App Store listing; the review link
+                // pointed at Hermex's. Hidden until Verity has a listing of its own.
             }
 
             Section {
