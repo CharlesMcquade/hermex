@@ -448,6 +448,7 @@ struct ChatView: View {
     @State private var showsBotProfileEditor = false
     @State private var hasSideRail = false
     @State private var showsRailWorkspaceSearch = false
+    @State private var showsRailModelPicker = false
     /// Measured height of the pinned notice stack, which grows with each
     /// notice and with Dynamic Type.
     @State private var pinnedNoticeStackHeight: CGFloat = 0
@@ -1290,6 +1291,23 @@ struct ChatView: View {
                 HermesSessionListView(entry: entry).id(entry.id)
             }
             .navigationDestination(isPresented: $showsBotProfileEditor) { botProfileEditor }
+            .sheet(isPresented: $showsRailModelPicker) {
+                ModelPickerSheet(
+                    configuration: .composer,
+                    modelGroups: viewModel.composerModelGroups,
+                    selectedModelID: viewModel.selectedModelID,
+                    selectedModelProviderID: viewModel.selectedModelProviderID,
+                    favoriteModelKeys: ModelFavoritesStore.shared.favoriteKeys,
+                    recentModelKeys: ModelRecentsStore.shared.recentKeys,
+                    isSelected: { $0.matchesSelection(modelID: viewModel.selectedModelID, providerID: viewModel.selectedModelProviderID) },
+                    onSelect: { option in
+                        showsRailModelPicker = false
+                        Task { if await viewModel.selectComposerModel(option) { ChatHaptics.configurationSelected(isEnabled: isHapticsEnabled) } }
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
             .sheet(isPresented: $showsRailWorkspaceSearch) {
                 ComposerWorkspacePickerSheet(
                     allowsCustomPath: true,
@@ -2298,6 +2316,10 @@ struct ChatView: View {
                             }
                         }
                     }
+                    Divider()
+                    Button { showsRailModelPicker = true } label: {
+                        Label("All Models…", systemImage: "list.bullet")
+                    }
                 } label: {
                     // The selection is the row's title so it reads first.
                     Label {
@@ -2371,7 +2393,7 @@ struct ChatView: View {
                     Button {
                         showsRailWorkspaceSearch = true
                     } label: {
-                        Label("Search…", systemImage: "magnifyingglass")
+                        Label("Other Path…", systemImage: "magnifyingglass")
                     }
                     Divider()
                     ForEach(roots, id: \.path) { root in
