@@ -89,6 +89,15 @@ extension APIClient {
         )
     }
 
+    /// Asks the server to generate a fresh title from the conversation (webui only).
+    func regenerateSessionTitle(id: String) async throws -> SessionMutationResponse {
+        try await send(
+            endpoint: .regenerateSessionTitle,
+            method: "POST",
+            body: SessionIDRequest(sessionId: id)
+        )
+    }
+
     func deleteSession(id: String) async throws -> SessionMutationResponse {
         try await send(
             endpoint: .deleteSession,

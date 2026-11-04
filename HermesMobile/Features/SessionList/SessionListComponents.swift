@@ -117,6 +117,8 @@ struct SessionListRowActions {
     let createProject: (SessionSummary) -> Void
     let refreshProjects: () -> Void
     let export: (SessionSummary, SessionExportFormat) -> Void
+    /// nil where the server has no title regeneration (a Hermes host).
+    var regenerateTitle: ((SessionSummary) -> Void)? = nil
 }
 
 /// Which row actions a session offers. A Hermes server's row (#1046, #1048) offers pin,
@@ -256,6 +258,9 @@ struct SessionsHeader: View {
     /// Opens the compact home's drawer. nil on split layouts, whose sidebar is
     /// already the menu — the hamburger shows only when this is set.
     var menu: (() -> Void)? = nil
+    /// The split sidebar's own title, drawn in the header row beside the pill so the
+    /// sidebar has no separate title row above it.
+    var title: String? = nil
     /// False while the side rail carries search and the avatar; the pill returns while searching.
     var showsPill = true
     /// What the list's rows say about the connection, for the status line (#1374).
@@ -280,11 +285,26 @@ struct SessionsHeader: View {
                     .accessibilityLabel(Text("Open menu"))
                 }
 
-                Color.clear
-                    .frame(width: 0, height: 0)
-                    .opacity(isExpanded ? 0 : 1)
-                    .clipped()
-                    .accessibilityHidden(isExpanded)
+                if let title, !isExpanded {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(verbatim: "VERITY")
+                            .font(.caption.weight(.semibold))
+                            .tracking(1.2)
+                            .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
+                        Text(title)
+                            .font(.largeTitle.bold())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                            .accessibilityAddTraits(.isHeader)
+                    }
+                } else {
+                    Color.clear
+                        .frame(width: 0, height: 0)
+                        .opacity(isExpanded ? 0 : 1)
+                        .clipped()
+                        .accessibilityHidden(isExpanded)
+                }
 
                 if showsPill || isExpanded {
                     pill
@@ -296,7 +316,7 @@ struct SessionsHeader: View {
             HomeConnectionStatusLine(driver: connectionStatus, reconnectNow: reconnectNow)
         }
         .padding(.horizontal, 24)
-        .padding(.top, menu == nil && !showsPill && !isExpanded ? 0 : 28)
+        .padding(.top, title != nil || (menu == nil && !showsPill && !isExpanded) ? 0 : 28)
         .animation(SessionListMotion.searchChromeAnimation(reduceMotion: reduceMotion), value: isExpanded)
         .animation(SessionListMotion.searchFocusAnimation(reduceMotion: reduceMotion), value: showsClearButton)
         .drivesHomeConnectionStatus(connectionStatus, connection: connection)
@@ -1165,7 +1185,7 @@ struct ScheduledSessionsDisclosure: View {
 
     var body: some View {
         SidebarDisclosureButton(
-            title: String(localized: "Scheduled sessions"),
+            title: String(localized: "Scheduled"),
             assetImage: "LucideCalendarClock",
             isExpanded: isExpanded
         ) {
@@ -1402,6 +1422,15 @@ struct SessionRowContextMenu: View {
             } label: {
                 Label("Copy Full Title", systemImage: "doc.on.doc")
             }
+
+            if let sessionID = session.sessionId, !sessionID.isEmpty {
+                Button {
+                    UIPasteboard.general.string = sessionID
+                    ChatHaptics.copied(isEnabled: isHapticsEnabled)
+                } label: {
+                    Label("Copy Session ID", systemImage: "number")
+                }
+            }
         }
 
         Button {
@@ -1425,6 +1454,15 @@ struct SessionRowContextMenu: View {
                 Label("Rename", systemImage: "pencil")
             }
             .disabled(isViewingCachedData || isRenamingSession || !hasServerSessionID(session))
+
+            if let regenerateTitle = actions.regenerateTitle {
+                Button {
+                    regenerateTitle(session)
+                } label: {
+                    Label("Regenerate Title", systemImage: "sparkles")
+                }
+                .disabled(isViewingCachedData || !hasServerSessionID(session) || isMutating)
+            }
 
             if SessionRowActionPolicy.canDuplicate(session) {
                 Button {

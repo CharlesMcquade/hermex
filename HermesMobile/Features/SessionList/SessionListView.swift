@@ -1002,6 +1002,7 @@ struct SessionListView: View {
                 isExpanded: searchChromeIsExpanded, text: $searchText, isFocused: $searchFieldIsFocused, close: closeSearch
             ),
             menu: horizontalSizeClass == .regular || hasSideRail ? nil : { isShowingDrawer = true },
+            title: horizontalSizeClass == .regular && !hasSideRail ? String(localized: "Sessions") : nil,
             showsPill: !hasSideRail,
             openSearch: openSearch
         )
@@ -1282,8 +1283,23 @@ struct SessionListView: View {
             },
             export: { session, format in
                 Task { await export(session, format: format) }
+            },
+            regenerateTitle: { session in
+                Task { await regenerateTitle(session) }
             }
         )
+    }
+
+    private func regenerateTitle(_ session: SessionSummary) async {
+        actionToast.show(ActionToast(message: String(localized: "Regenerating title…"),
+                                     systemImage: "sparkles", accessibilityLabel: String(localized: "Regenerating title"), tone: .busy))
+        do {
+            let title = try await viewModel.regenerateTitle(session, modelContext: modelContext)
+            actionToast.show(ActionToast(message: title, systemImage: "sparkles", accessibilityLabel: String(localized: "Title regenerated: \(title)"), tone: .success))
+        } catch {
+            let message = (error as? APIError)?.serverMessage ?? error.localizedDescription
+            actionToast.show(.failure(message))
+        }
     }
 
     private func refreshSessionsAndActiveProfile() async {

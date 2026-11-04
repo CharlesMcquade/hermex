@@ -68,6 +68,10 @@ struct SessionMutator {
         try await client.renameSession(id: sessionID, title: title)
     }
 
+    func regenerateTitle(sessionID: String) async throws -> SessionMutationResponse {
+        try await client.regenerateSessionTitle(id: sessionID)
+    }
+
     func move(sessionID: String, to projectID: String?) async throws {
         do {
             _ = try await client.moveSession(id: sessionID, projectID: projectID)

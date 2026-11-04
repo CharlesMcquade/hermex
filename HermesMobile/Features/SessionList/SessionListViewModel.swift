@@ -1151,6 +1151,25 @@ final class SessionListViewModel {
         return mutatingSessionIDs.contains(sessionId)
     }
 
+    /// Asks the server for a fresh title and applies it. Returns the new title, or
+    /// throws the server's refusal (it keeps the old title when it cannot do better).
+    func regenerateTitle(_ session: SessionSummary, modelContext: ModelContext? = nil) async throws -> String {
+        guard let sessionId = Self.nonEmpty(session.sessionId) else {
+            throw URLError(.badServerResponse)
+        }
+        let response = try await sessionMutator.regenerateTitle(sessionID: sessionId)
+        guard let title = Self.nonEmpty(response.session?.title) else { throw URLError(.cannotParseResponse) }
+        let baseSession = sessions.first(where: { $0.sessionId == sessionId }) ?? session
+        let updatedSession = baseSession.replacingTitle(with: title)
+        if let index = sessions.firstIndex(where: { $0.sessionId == sessionId }) {
+            sessions[index] = updatedSession
+        }
+        if let modelContext {
+            try? CacheStore.cacheSession(updatedSession, serverURL: server, in: modelContext)
+        }
+        return title
+    }
+
     /// Renames a session from the rename sheet; a failure's reason stays in the sheet as
     /// `renameErrorMessage`.
     func rename(_ session: SessionSummary, to rawTitle: String, modelContext: ModelContext? = nil) async -> Bool {
