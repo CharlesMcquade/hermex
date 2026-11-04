@@ -25,6 +25,12 @@ struct SlashCommandScope: Equatable, Sendable {
 enum SlashCommandCatalog {
     static let allCommands: [SlashCommand] = [
         SlashCommand(
+            name: "yolo",
+            description: String(localized: "Skip approvals in this chat, or ask again"),
+            noEcho: true,
+            handler: .serverSide(.yolo)
+        ),
+        SlashCommand(
             name: "help",
             description: String(localized: "Show available slash commands"),
             noEcho: false,

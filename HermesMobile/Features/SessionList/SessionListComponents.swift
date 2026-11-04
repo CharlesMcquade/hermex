@@ -854,6 +854,14 @@ struct SessionListRowsSection: View {
     var suppressEmptyState = false
     /// A Hermes list shows a refusal the user has to act on over the rows too (#1374).
     var showsErrorOverRows = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Two points under title3, regular weight, scaling with Dynamic Type.
+    @ScaledMetric(relativeTo: .title3) private var sectionHeaderSize: CGFloat = 18
+    @AppStorage(SessionTimeBucket.collapsedKey) private var collapsedBucketsRaw = ""
+    private var collapsedBuckets: Set<SessionTimeBucket> {
+        get { SessionTimeBucket.decode(collapsedBucketsRaw) }
+        nonmutating set { collapsedBucketsRaw = SessionTimeBucket.encode(newValue) }
+    }
 
     var body: some View {
         sessionsHeaderRow
@@ -878,19 +886,67 @@ struct SessionListRowsSection: View {
             )
                 .padding(.horizontal, 24)
                 .sessionsScreenListRow()
+        } else if isSearchActive {
+            ForEach(sessions) { session in row(session) }
         } else {
-            ForEach(sessions) { session in
-                SessionInteractiveRow(
-                    viewModel: viewModel,
-                    session: session,
-                    showsMessageCount: showsMessageCount,
-                    showsWorkspace: showsWorkspace,
-                    selectedSessionID: selectedSessionID,
-                    actions: actions,
-                    searchText: searchText
-                )
+            ForEach(SessionTimeBucket.groups(sessions, now: .now)) { group in
+                bucketHeader(group)
+                if !collapsedBuckets.contains(group.bucket) {
+                    ForEach(group.sessions) { session in
+                        row(session)
+                            .transition(SessionListMotion.disclosureContentTransition(reduceMotion: reduceMotion))
+                    }
+                }
             }
         }
+    }
+
+    private func row(_ session: SessionSummary) -> some View {
+        SessionInteractiveRow(
+            viewModel: viewModel,
+            session: session,
+            showsMessageCount: showsMessageCount,
+            showsWorkspace: showsWorkspace,
+            selectedSessionID: selectedSessionID,
+            actions: actions,
+            searchText: searchText
+        )
+    }
+
+    /// Pinned uses the section-header style; date buckets match the row titles.
+    private func bucketHeader(_ group: SessionTimeBucket.Group) -> some View {
+        let isCollapsed = collapsedBuckets.contains(group.bucket)
+        let isPinned = group.bucket == .pinned
+        return Button {
+            withAnimation(SessionListMotion.disclosureAnimation(reduceMotion: reduceMotion)) {
+                collapsedBuckets.formSymmetricDifference([group.bucket])
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(group.bucket.title)
+                    .font(isPinned ? .system(size: sectionHeaderSize) : AppFont.headline(weight: .semibold))
+                    .foregroundStyle(isPinned ? .primary : .secondary)
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .rotationEffect(.degrees(isCollapsed ? -90 : 0))
+                Spacer(minLength: 0)
+                if isCollapsed {
+                    Text("\(group.sessions.count)")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 24)
+        .padding(.top, isPinned ? 0 : 10)
+        .padding(.bottom, 6)
+        .sessionsScreenListRow()
+        .accessibilityLabel(Text(group.bucket.title))
+        .accessibilityValue(isCollapsed ? Text("Collapsed") : Text("Expanded"))
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var sessionsHeaderRow: some View {
@@ -898,7 +954,7 @@ struct SessionListRowsSection: View {
             HStack(spacing: 10) {
                 if !isSearchActive {
                     Text("Sessions")
-                        .font(.title3.bold())
+                        .font(.system(size: sectionHeaderSize))
                         .foregroundStyle(.primary)
                 }
 
@@ -2216,5 +2272,89 @@ struct OfflineCacheBanner: View {
         .padding(.vertical, 10)
         .background(Color.orange.opacity(0.12))
         .accessibilityElement(children: .combine)
+    }
+}
+
+
+/// The home list's groups: Pinned first, then WebUI's date buckets
+/// (`_sessionTimeBucketLabel` in hermes-webui `sessions.js`). Weeks start on Monday,
+/// in the device's time zone, exactly as WebUI computes them.
+enum SessionTimeBucket: String, CaseIterable, Hashable {
+    case pinned
+    case today
+    case yesterday
+    case thisWeek = "this_week"
+    case lastWeek = "last_week"
+    case older
+
+    struct Group: Identifiable {
+        let bucket: SessionTimeBucket
+        let sessions: [SessionSummary]
+        var id: SessionTimeBucket { bucket }
+    }
+
+    static let collapsedKey = "sessionSidebar.collapsedTimeBuckets"
+
+    var title: String {
+        switch self {
+        case .pinned: String(localized: "Pinned")
+        case .today: String(localized: "Today")
+        case .yesterday: String(localized: "Yesterday")
+        case .thisWeek: String(localized: "This week")
+        case .lastWeek: String(localized: "Last week")
+        case .older: String(localized: "Older")
+        }
+    }
+
+    /// Splits already-sorted sessions into non-empty groups, keeping their order.
+    static func groups(_ sessions: [SessionSummary], now: Date, calendar: Calendar = .current) -> [Group] {
+        let bounds = Boundaries(now: now, calendar: calendar)
+        var grouped: [SessionTimeBucket: [SessionSummary]] = [:]
+        for session in sessions {
+            let bucket = session.pinned == true ? .pinned : bounds.bucket(for: timestamp(of: session))
+            grouped[bucket, default: []].append(session)
+        }
+        return allCases.compactMap { bucket in
+            grouped[bucket].map { Group(bucket: bucket, sessions: $0) }
+        }
+    }
+
+    static func decode(_ raw: String) -> Set<SessionTimeBucket> {
+        Set(raw.split(separator: ",").compactMap { SessionTimeBucket(rawValue: String($0)) })
+    }
+
+    static func encode(_ buckets: Set<SessionTimeBucket>) -> String {
+        allCases.filter(buckets.contains).map(\.rawValue).joined(separator: ",")
+    }
+
+    private static func timestamp(of session: SessionSummary) -> Double {
+        session.lastMessageAt ?? session.updatedAt ?? session.createdAt ?? 0
+    }
+
+    private struct Boundaries {
+        let today: Double
+        let yesterday: Double
+        let week: Double
+        let lastWeek: Double
+
+        init(now: Date, calendar: Calendar) {
+            let startOfToday = calendar.startOfDay(for: now)
+            // JS getDay(): Sunday 0 … Saturday 6; WebUI backs up (day + 6) % 7 days to Monday.
+            let jsWeekday = calendar.component(.weekday, from: startOfToday) - 1
+            let startOfWeek = calendar.date(byAdding: .day, value: -((jsWeekday + 6) % 7), to: startOfToday) ?? startOfToday
+            today = startOfToday.timeIntervalSince1970
+            yesterday = (calendar.date(byAdding: .day, value: -1, to: startOfToday) ?? startOfToday).timeIntervalSince1970
+            week = startOfWeek.timeIntervalSince1970
+            lastWeek = (calendar.date(byAdding: .day, value: -7, to: startOfWeek) ?? startOfWeek).timeIntervalSince1970
+        }
+
+        func bucket(for timestamp: Double) -> SessionTimeBucket {
+            guard timestamp > 0 else { return .older }
+            if timestamp >= today { return .today }
+            if timestamp >= yesterday { return .yesterday }
+            if timestamp >= week { return .thisWeek }
+            if timestamp >= lastWeek { return .lastWeek }
+            return .older
+        }
     }
 }

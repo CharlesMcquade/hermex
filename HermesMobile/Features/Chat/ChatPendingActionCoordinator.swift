@@ -167,6 +167,27 @@ final class ChatPendingActionCoordinator {
         }
     }
 
+    /// A webui `/yolo`: flips this session's approval bypass through the yolo route.
+    /// Returns the server's resulting state, or nil when the request failed.
+    func toggleApprovalBypassForCurrentSession() async -> Bool? {
+        guard let sessionID = delegate?.pendingActionSessionID else { return nil }
+        let enabled = !isSessionApprovalBypassEnabled
+        do {
+            let response = try await client.setSessionYolo(sessionID: sessionID, enabled: enabled)
+            guard delegate?.pendingActionSessionID == sessionID else { return nil }
+            isSessionApprovalBypassEnabled = response.yoloEnabled ?? enabled
+            if isSessionApprovalBypassEnabled {
+                approvalStateGeneration &+= 1
+                approvalPendingBySession[sessionID] = nil
+                approvalPrompt = nil
+            }
+            return isSessionApprovalBypassEnabled
+        } catch {
+            approvalErrorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
     @discardableResult
     func skipApprovalsForCurrentSession() async -> Bool {
         guard let prompt = approvalPrompt,

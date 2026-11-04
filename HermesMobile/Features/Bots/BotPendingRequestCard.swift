@@ -205,6 +205,8 @@ private struct BotApprovalRequestBody: View {
 /// tap, as the Sessions card does; multi-select and batches need a deliberate
 /// Send because no one tap can express the whole answer.
 private struct BotQuestionRequestBody: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private var chatBodySize: CGFloat { ChatTypography(dynamicTypeSize: dynamicTypeSize).bodySize }
     let question: BotQuestionRequest
     let identity: String
     let isEnabled: Bool
@@ -250,7 +252,7 @@ private struct BotQuestionRequestBody: View {
         ForEach(question.questions) { item in
             VStack(alignment: .leading, spacing: 10) {
                 Text(item.prompt)
-                    .font(.subheadline)
+                    .font(.system(size: chatBodySize))
                     .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
                     .pendingRequestBlockSurface()
@@ -301,7 +303,7 @@ private struct BotQuestionRequestBody: View {
                         .accessibilityHidden(true)
                 }
                 Text(choice.label)
-                    .font(.callout.weight(.semibold))
+                    .font(.system(size: chatBodySize))
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
                 if choice.isRecommended {

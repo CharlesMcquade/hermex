@@ -1215,3 +1215,22 @@ private final class WindowReportingView: UIView {
         onWindowChange(window != nil)
     }
 }
+
+final class SessionTimeBucketTests: XCTestCase {
+    func testBucketsMatchWebUIMondayWeeks() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "America/Chicago")!
+        // Wednesday 2026-11-04 noon; the week began Monday 11-02.
+        let now = calendar.date(from: DateComponents(year: 2026, month: 11, day: 4, hour: 12))!
+        func at(_ day: Int, pinned: Bool = false) -> SessionSummary {
+            let date = calendar.date(from: DateComponents(year: 2026, month: 11, day: day, hour: 9))!
+            return SessionSummary(sessionId: "\(day)\(pinned)", lastMessageAt: date.timeIntervalSince1970, pinned: pinned)
+        }
+        let groups = SessionTimeBucket.groups(
+            [at(4), at(4, pinned: true), at(3), at(2), at(1), at(-5), at(-6)],
+            now: now, calendar: calendar
+        )
+        XCTAssertEqual(groups.map(\.bucket), [.pinned, .today, .yesterday, .thisWeek, .lastWeek, .older])
+        XCTAssertEqual(groups.map(\.sessions.count), [1, 1, 1, 1, 2, 1])
+    }
+}

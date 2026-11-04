@@ -2304,6 +2304,29 @@ final class ChatViewModelSendTests: XCTestCase {
     }
 
     @MainActor
+    func testWebuiYoloSlashCommandTurnsOnApprovalBypass() async throws {
+        var yoloBody: [String: Any]?
+        let viewModel = try makeViewModel(
+            streamClient: SpySSEStreamingClient(),
+            handler: routes([
+                "/api/chat/start": chatStarted(),
+                "/api/session/yolo": { request in
+                    yoloBody = try XCTUnwrap(apiTestJSONBody(from: request))
+                    return apiTestJSONResponse(#"{"ok": true, "yolo_enabled": true}"#, for: request)
+                },
+            ])
+        )
+        let sent = await viewModel.sendMessage("hi")
+        XCTAssertTrue(sent)
+
+        let result = await SlashCommandExecutor.execute(text: "/yolo", viewModel: viewModel)
+
+        XCTAssertEqual(result, .executed(message: nil))
+        XCTAssertEqual(yoloBody?["enabled"] as? Bool, true)
+        XCTAssertEqual(viewModel.isSessionApprovalBypassEnabled, true)
+    }
+
+    @MainActor
     func testSkipAllThisSessionEnablesYoloAndClearsPrompt() async throws {
         let streamClient = SpySSEStreamingClient()
         let approvalStreamClient = SpySSEStreamingClient()

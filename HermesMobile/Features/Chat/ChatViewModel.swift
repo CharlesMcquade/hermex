@@ -4542,7 +4542,13 @@ final class ChatViewModel {
     /// `config.set yolo` as the approval card's Skip all and the bypass pill.
     private func toggleHermesApprovalBypassFromSlashCommand() async -> SlashCommandExecutionResult {
         guard let requests = hermesRequests else {
-            return .unsupported(friendlyMessage: SlashCommandExecutor.unsupportedMessage(for: "yolo"))
+            guard let enabled = await pendingActionCoordinator.toggleApprovalBypassForCurrentSession() else {
+                return notDelivered(String(localized: "Reconnect to the server to run /\("yolo")."))
+            }
+            notifyLocally(enabled
+                          ? String(localized: "Approvals are skipped in this chat. Run /yolo again to turn them back on.")
+                          : String(localized: "Approvals are back on in this chat."))
+            return .executed(message: nil)
         }
         if requests.approvalBypass, !requests.mayTurnOffApprovalBypass {
             return notDelivered(String(localized: "This Hermes host approves every command itself, so approvals can't be turned back on from here."))

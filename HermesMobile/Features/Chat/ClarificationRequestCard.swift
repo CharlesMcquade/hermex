@@ -163,6 +163,7 @@ struct ClarificationRequestBar: View {
 }
 
 struct ClarificationRequestCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let prompt: ClarificationPromptState
     let maximumExpandedHeight: CGFloat
     let isResponding: Bool
@@ -200,6 +201,9 @@ struct ClarificationRequestCard: View {
             }
     }
 
+    /// The transcript's body size, so the card reads at the same size as the chat around it.
+    private var chatBodySize: CGFloat { ChatTypography(dynamicTypeSize: dynamicTypeSize).bodySize }
+
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Image(systemName: "questionmark.circle")
@@ -209,7 +213,7 @@ struct ClarificationRequestCard: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text("Clarification Required")
-                    .font(.headline)
+                    .font(.system(size: chatBodySize, weight: .semibold))
 
                 if prompt.pendingCount > 1 {
                     Text("1 of \(prompt.pendingCount) pending")
@@ -250,7 +254,7 @@ struct ClarificationRequestCard: View {
 
     private var question: some View {
         Text(prompt.question)
-            .font(.subheadline)
+            .font(.system(size: chatBodySize))
             .foregroundStyle(.primary)
             .fixedSize(horizontal: false, vertical: true)
             .pendingRequestBlockSurface()
@@ -289,6 +293,7 @@ struct ClarificationRequestCard: View {
     private var responseField: some View {
         HStack(alignment: .bottom, spacing: 10) {
             TextField("Type a response", text: $draftResponse, axis: .vertical)
+                .font(.system(size: chatBodySize))
                 .textFieldStyle(.plain)
                 .lineLimit(2...5)
                 .tint(PendingRequestSubmitButton.fill(canSubmit: canSubmit, colorScheme: colorScheme))
@@ -409,7 +414,7 @@ struct ClarificationRequestCard: View {
             onSubmit(choice)
         } label: {
             Text(choice)
-                .font(.callout.weight(.semibold))
+                .font(.system(size: chatBodySize))
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 12)
