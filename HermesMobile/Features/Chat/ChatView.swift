@@ -386,8 +386,10 @@ struct ChatView: View {
     @State private var forkOrigin: ForkOrigin?
     @State private var isOpeningForkParent = false
     @State private var editContext: MessageActionContext?
-    @State private var editDraft = ""
-    @State private var showEditSheet = false
+    /// The draft the composer held when the edit began, restored when the edit
+    /// is submitted or cancelled, so editing never costs the unsent draft.
+    @State private var stashedComposerDraft: ComposerDraftContent?
+    @State private var stashedDraftOrigin: ImportedTextOrigin?
     @State private var showEditDiscardConfirmation = false
     @State private var regenerateContext: MessageActionContext?
     @State private var showRegenerateDiscardConfirmation = false
@@ -656,9 +658,15 @@ struct ChatView: View {
             },
             streamingSendBehavior: StreamingSendBehavior.storedValue(streamingSendBehaviorRawValue),
             onSend: { behavior in
-                Task { await sendDraftMessage(behavior: behavior) }
+                if let context = editContext {
+                    Task { await submitEdit(context, newText: draftMessage) }
+                } else {
+                    Task { await sendDraftMessage(behavior: behavior) }
+                }
             },
             onSendVoiceNote: { data, filename in
+                // A voice note is a fresh message, not the edit: the edit ends first.
+                if editContext != nil { exitComposerEdit() }
                 Task { await sendVoiceNote(audioData: data, filename: filename) }
             },
             onCancel: {
@@ -751,8 +759,14 @@ struct ChatView: View {
             onFileReferenceCandidatesChange: { draft in
                 await viewModel.loadFileChipReferences(draft: draft)
             },
-            onDraftEdit: persistDraftEdit,
-            recallLastSentText: { viewModel.lastSentText },
+            // While a sent message is being edited in the composer, its text is
+            // not the draft: the stashed draft stays persisted until the edit ends.
+            onDraftEdit: { text in
+                guard editContext == nil else { return }
+                persistDraftEdit(text)
+            },
+            recallLastSentText: editContext == nil ? { viewModel.lastSentText } : nil,
+            onEditCancel: editContext == nil ? nil : { exitComposerEdit() },
             onPasteLargeText: isHermesSession ? { text in
                 viewModel.stagePastedText(text)
             } : nil,
@@ -1394,17 +1408,6 @@ struct ChatView: View {
                     }
                 )
             }
-            .sheet(isPresented: $showEditSheet) {
-                EditMessageSheet(
-                    originalText: editContext?.copyText ?? "",
-                    editDraft: $editDraft,
-                    onSubmit: {
-                        if let context = editContext {
-                            Task { await submitEdit(context) }
-                        }
-                    }
-                )
-            }
     }
 
     var body: some View {
@@ -1414,12 +1417,10 @@ struct ChatView: View {
                 isPresented: $showEditDiscardConfirmation
             ) {
                 Button("Cancel", role: .cancel) {
-                    editContext = nil
-                    editDraft = ""
+                    exitComposerEdit()
                 }
                 Button("Discard & Edit", role: .destructive) {
                     ChatHaptics.destructiveConfirmationAccepted(isEnabled: isHapticsEnabled)
-                    showEditSheet = true
                 }
             } message: {
                 Text(editDiscardWarningMessage)
@@ -3433,6 +3434,9 @@ struct ChatView: View {
             get: { draftQuotes },
             set: { newValue in
                 draftQuotes = newValue
+                // A quote added while a sent message is being edited here cannot
+                // touch the stashed draft the edit will hand back.
+                guard editContext == nil else { return }
                 draftRevision &+= 1
                 draftStore.setContent(
                     ComposerDraftContent(text: draftMessage, quotes: newValue),
@@ -4464,28 +4468,56 @@ struct ChatView: View {
     }
 
     private func beginEditMessage(_ context: MessageActionContext) {
-        editDraft = context.copyText
+        guard editContext == nil else { return }
+        // The composer's draft waits out the edit and comes back after it.
+        stashedComposerDraft = ComposerDraftContent(text: draftMessage, quotes: draftQuotes)
+        stashedDraftOrigin = textOrigin
+        textBeforeHiddenRemoval = nil
         editContext = context
-        let messagesAfter = transcriptMessagesAfter(context)
-        if messagesAfter > 0 {
+        draftMessage = context.copyText
+        draftQuotes = []
+        draftRevision &+= 1
+        composerIsFocused = true
+        if transcriptMessagesAfter(context) > 0 {
             showEditDiscardConfirmation = true
-        } else {
-            showEditSheet = true
         }
     }
 
-    private func submitEdit(_ context: MessageActionContext) async {
+    /// Ends an edit without sending it: the composer returns to the stashed draft.
+    private func exitComposerEdit() {
+        guard editContext != nil else { return }
         editContext = nil
         showEditDiscardConfirmation = false
+        restoreStashedComposerDraft()
+    }
 
-        let success = await viewModel.editMessage(context, newText: editDraft, modelContext: modelContext)
+    /// Puts the stashed draft back in the composer. A direct store write: the
+    /// restore is not a user edit.
+    private func restoreStashedComposerDraft() {
+        let restored = stashedComposerDraft ?? .empty
+        let restoredOrigin = stashedDraftOrigin
+        stashedComposerDraft = nil
+        stashedDraftOrigin = nil
+        draftMessage = restored.text
+        draftQuotes = restored.quotes
+        textOrigin = restoredOrigin
+        draftRevision &+= 1
+        draftStore.setContent(
+            ComposerDraftContent(text: restored.text, quotes: restored.quotes),
+            for: draftKey
+        )
+    }
 
-        if success {
-            editDraft = ""
-        }
+    private func submitEdit(_ context: MessageActionContext, newText: String) async {
+        editContext = nil
+        showEditDiscardConfirmation = false
+        // The composer goes back to the pre-edit draft; a Hermes edit that failed
+        // appends its unsent text after that draft (restoreUnsentEdit).
+        restoreStashedComposerDraft()
+
+        _ = await viewModel.editMessage(context, newText: newText, modelContext: modelContext)
         if let unsent = viewModel.takeUnsentHermesEdit() {
             restoreUnsentEdit(unsent)
-            editDraft = ""
         }
 
         if let lastError = viewModel.lastError {

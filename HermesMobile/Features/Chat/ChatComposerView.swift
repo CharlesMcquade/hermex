@@ -110,6 +110,32 @@ private struct ComposerStatusView: View {
     }
 }
 
+/// The "Editing Message" pill above the composer's input while a sent message
+/// is being edited in it (Messages-style). Cancel hands the composer back to
+/// the draft it held before the edit.
+private struct ComposerEditBanner: View {
+    let onCancel: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Label("Editing Message", systemImage: "pencil")
+                .font(AppFont.caption())
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 8)
+            Button(action: onCancel) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(AppFont.body())
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityLabel(Text("Cancel Editing"))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Color(.separator).opacity(0.25), in: Capsule())
+        .padding(.horizontal, 16)
+    }
+}
+
 private struct ComposerQuoteDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -272,6 +298,9 @@ struct MessageComposerView: View {
     /// The chat's last sent message, for ↑ in an empty composer on a hardware
     /// keyboard. A closure, so the transcript is scanned only when ↑ is pressed.
     var recallLastSentText: (() -> String?)? = nil
+    /// Non-nil while the composer is editing a sent message: shows the edit
+    /// banner, whose action cancels the edit.
+    var onEditCancel: (() -> Void)? = nil
     /// Takes a long paste as a file; a Hermes session's (#1381). Nil keeps pastes inline.
     var onPasteLargeText: ((String) -> Void)? = nil
     /// A file chip the user tapped, by workspace-relative path.
@@ -573,6 +602,9 @@ struct MessageComposerView: View {
     private var composerWithLifecycle: some View {
         AdaptiveGlassContainer(spacing: 6) {
             VStack(spacing: 6) {
+                if let onEditCancel {
+                    ComposerEditBanner(onCancel: onEditCancel)
+                }
                 if voiceNoteRecorder.isRecording {
                     ComposerVoiceRecordingBar(
                         elapsed: voiceNoteRecorder.elapsed,
