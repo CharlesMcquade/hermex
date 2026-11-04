@@ -97,6 +97,13 @@ enum HeaderLogoColor {
         Color(hexRGB: normalizedHex(rawValue) ?? defaultHex) ?? Color(red: 1.0, green: 0.843, blue: 0.0)
     }
 
+    /// The colour as the app's tint. White would vanish on light backgrounds, so it
+    /// falls back to the system accent.
+    static func accentColor(for rawValue: String) -> Color? {
+        let hex = normalizedHex(rawValue) ?? defaultHex
+        return hex == "#FFFFFF" ? nil : color(for: hex)
+    }
+
     static func prefersDarkForeground(for rawValue: String) -> Bool {
         guard let components = rgbComponents(for: rawValue) else {
             return true

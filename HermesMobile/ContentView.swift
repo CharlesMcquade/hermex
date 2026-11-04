@@ -10,8 +10,12 @@ struct ContentView: View {
     @State private var intentRouter = AppIntentRouter.shared
     @AppStorage(BotModeGate.isEnabledKey) private var isBotModeEnabled = false
 
+    @AppStorage(HeaderLogoColor.storageKey) private var headerLogoColorHex = HeaderLogoColor.defaultHex
+
     var body: some View {
         content
+            // The active server's colour is the app's accent: selection, menus, links, toggles.
+            .tint(HeaderLogoColor.accentColor(for: headerLogoColorHex))
             .moveToHermesNotices(authManager)
             .onOpenURL(perform: handleOpenURL)
             .task {
