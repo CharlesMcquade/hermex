@@ -710,6 +710,9 @@ struct SessionListView: View {
         }
         .sheet(isPresented: $isPresentingNewScheduledTask) {
             NewScheduledTaskSheet(server: server, onAPIError: authManager.handleAPIError) {
+                let message = String(localized: "Task Created")
+                actionToast.show(ActionToast(message: message, systemImage: "clock.badge.checkmark",
+                                             accessibilityLabel: message, tone: .success))
                 Task { await loadSessionRows() }
             }
         }
