@@ -5,6 +5,9 @@ extension View {
     /// A Settings page's list (#1252): inset grouped, titled inline under the index's large title.
     func settingsPage(_ title: String) -> some View {
         listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(AppSurfaceColor.groupedBackground.ignoresSafeArea())
+            .listRowBackground(AppSurfaceColor.secondaryGroupedBackground)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
     }

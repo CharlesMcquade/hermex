@@ -118,7 +118,7 @@ struct GoalSubmissionSheet: View {
                 .font(.body)
                 .padding()
                 .scrollContentBackground(.hidden)
-                .background(Color(.systemGroupedBackground))
+                .background(AppSurfaceColor.groupedBackground)
                 .navigationTitle("Set Goal")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

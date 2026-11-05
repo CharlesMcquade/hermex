@@ -6,6 +6,43 @@ import UserNotifications
 final class AppThemeTests: XCTestCase {
     func testStoredValueFallsBackToSystemForUnknownRawValue() {
         XCTAssertEqual(AppTheme.storedValue("unexpected"), .system)
+        XCTAssertEqual(AppLightSurfaceStyle.storedValue("unexpected"), .standard)
+        XCTAssertEqual(AppDarkSurfaceStyle.storedValue("unexpected"), .black)
+    }
+
+    func testSepiaOnlyChangesLightSurfaces() throws {
+        let light = AppSurfacePalette(colorScheme: .light, lightStyle: .sepia, darkStyle: .black)
+        let (red, _, blue) = try rgb(light.uiColor(for: .background))
+        XCTAssertGreaterThan(red, blue, "Sepia should be warm rather than a gray filter")
+
+        let dark = AppSurfacePalette(colorScheme: .dark, lightStyle: .sepia, darkStyle: .black)
+        XCTAssertTrue(dark.uiColor(for: .background).isEqual(systemBackground(in: .dark)))
+    }
+
+    func testSoftGrayLiftsOnlyDarkSurfaces() throws {
+        let black = AppSurfacePalette(colorScheme: .dark, lightStyle: .standard, darkStyle: .black)
+        let soft = AppSurfacePalette(colorScheme: .dark, lightStyle: .standard, darkStyle: .softGray)
+        for role: AppSurfaceRole in [.background, .secondaryBackground, .groupedBackground, .secondaryGroupedBackground] {
+            let standard = try rgb(black.uiColor(for: role))
+            let lifted = try rgb(soft.uiColor(for: role))
+            XCTAssertGreaterThan(lifted.red, standard.red, "\(role) should lift away from OLED black")
+        }
+
+        let light = AppSurfacePalette(colorScheme: .light, lightStyle: .standard, darkStyle: .softGray)
+        XCTAssertTrue(light.uiColor(for: .background).isEqual(systemBackground(in: .light)))
+    }
+
+    private func systemBackground(in style: UIUserInterfaceStyle) -> UIColor {
+        UIColor.systemBackground.resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
+    }
+
+    private func rgb(_ color: UIColor) throws -> (red: CGFloat, green: CGFloat, blue: CGFloat) {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        XCTAssertTrue(color.getRed(&red, green: &green, blue: &blue, alpha: &alpha))
+        return (red, green, blue)
     }
 
     func testHeaderLogoColorNormalizesStoredHexValues() {

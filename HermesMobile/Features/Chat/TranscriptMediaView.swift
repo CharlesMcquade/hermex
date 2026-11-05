@@ -483,7 +483,7 @@ private struct TranscriptMediaFileExportView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: 240, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
+        .background(AppSurfaceColor.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -580,7 +580,7 @@ private struct TranscriptMediaVideoTile: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppSurfaceColor.secondaryBackground)
                 .frame(width: 210, height: 132)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -633,7 +633,7 @@ private struct TranscriptMediaUnavailableChip: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: 240, alignment: .leading)
-        .background(Color(.secondarySystemBackground))
+        .background(AppSurfaceColor.secondaryBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -834,7 +834,7 @@ struct TranscriptMediaPreviewView: View {
             }
             .padding()
         }
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
     }
 
     private func audioContent(_ data: Data) -> some View {
@@ -848,7 +848,7 @@ struct TranscriptMediaPreviewView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
     }
 
     private func videoContent(_ url: URL) -> some View {
@@ -866,7 +866,7 @@ struct TranscriptMediaPreviewView: View {
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
     }
 
     private func unavailableContent(_ message: String) -> some View {

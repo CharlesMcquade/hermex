@@ -284,7 +284,7 @@ struct ModelPickerSheet: View {
     }
 
     private var customEntryForeground: Color {
-        customOption == nil ? Color(.tertiaryLabel) : Color(.systemBackground)
+        customOption == nil ? Color(.tertiaryLabel) : Color(uiColor: .appSurface(.background))
     }
 
     /// Trailing star shared by model rows and the custom entry. Monochrome:
@@ -310,7 +310,7 @@ struct ModelPickerSheet: View {
 
     private func starColor(isFavorite: Bool, isInverted: Bool, isEnabled: Bool) -> Color {
         guard isEnabled else { return Color(.tertiaryLabel) }
-        if isInverted { return Color(.systemBackground) }
+        if isInverted { return Color(uiColor: .appSurface(.background)) }
         return isFavorite ? Color.primary : Color(.tertiaryLabel)
     }
 
@@ -479,7 +479,7 @@ struct ModelPickerSheet: View {
                     if inFlight {
                         ProgressView()
                             .controlSize(.small)
-                            .tint(selected ? Color(.systemBackground) : Color.primary)
+                            .tint(selected ? Color(uiColor: .appSurface(.background)) : Color.primary)
                     } else if selected {
                         Image(systemName: "checkmark")
                             .font(.body.weight(.semibold))
@@ -799,7 +799,7 @@ extension View {
     /// content that sits outside the row's own button — the model rows'
     /// favorite star does.
     func pickerSelectionPill(isSelected: Bool) -> some View {
-        foregroundStyle(isSelected ? Color(.systemBackground) : Color.primary)
+        foregroundStyle(isSelected ? Color(uiColor: .appSurface(.background)) : Color.primary)
             .padding(.horizontal, 12)
             .background(
                 isSelected ? Color.primary : Color.clear,

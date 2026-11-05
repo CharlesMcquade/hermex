@@ -145,7 +145,7 @@ import SwiftUI
             .padding(.horizontal, 16)
             .padding(.bottom, 36)
         }
-        .background(Color(uiColor: .systemBackground))
+        .background(AppSurfaceColor.background)
         .scrollDismissesKeyboard(.interactively)
         .disabled(editor.isSaving)
         .overlay { if editor.isSaving { ProgressView().padding(18).background(.regularMaterial, in: Circle()) } }
@@ -193,8 +193,8 @@ import SwiftUI
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary)
                 .frame(width: 30, height: 30)
-                .background(Color(uiColor: .secondarySystemGroupedBackground), in: Circle())
-                .overlay(Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 3))
+                .background(AppSurfaceColor.secondaryGroupedBackground, in: Circle())
+                .overlay(Circle().stroke(AppSurfaceColor.background, lineWidth: 3))
         }
         .offset(x: 6, y: 6)
         .accessibilityLabel("Change Photo")
@@ -262,7 +262,7 @@ import SwiftUI
                 }
             }
         }
-        .padding(16).background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
+        .padding(16).background(AppSurfaceColor.secondaryGroupedBackground, in: RoundedRectangle(cornerRadius: 18))
         .padding(.top, 10)
     }
 
@@ -312,7 +312,7 @@ import SwiftUI
 
     private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack(spacing: 0, content: content)
-            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(AppSurfaceColor.secondaryGroupedBackground, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private func editorField(_ title: LocalizedStringKey, text: Binding<String>) -> some View {

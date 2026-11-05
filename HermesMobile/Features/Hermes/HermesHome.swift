@@ -137,7 +137,7 @@ struct HomeDrawerOverlay<Menu: View>: View {
             .frame(maxHeight: .infinity, alignment: .top)
             // Lightly translucent, so the list blurs through behind the menu.
             .background(
-                reduceTransparency ? AnyShapeStyle(Color(.systemBackground)) : AnyShapeStyle(.ultraThinMaterial),
+                reduceTransparency ? AnyShapeStyle(AppSurfaceColor.background) : AnyShapeStyle(.ultraThinMaterial),
                 ignoresSafeAreaEdges: [.vertical, .leading]
             )
             .overlay(alignment: .trailing) {

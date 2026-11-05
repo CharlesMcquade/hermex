@@ -100,7 +100,7 @@ struct AddServerView: View {
                 .padding(.top, 18)
                 .padding(.bottom, 24)
             }
-            .background(Color(.systemBackground))
+            .background(AppSurfaceColor.background)
             .safeAreaInset(edge: .bottom, spacing: 0) { submitButton }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -352,7 +352,7 @@ struct AddServerView: View {
         .padding(.horizontal, 16)
         .padding(.top, 10)
         .padding(.bottom, 12)
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
     }
 
     private func submit() { submit(replacingWebuiServer: false) }
@@ -448,7 +448,7 @@ private struct ConnectionOptionsPage: View {
             .padding(.top, 18)
             .padding(.bottom, 36)
         }
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
         .navigationTitle(String(localized: "Connection Options"))
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -556,7 +556,7 @@ private struct SettingsCard<Content: View>: View {
             .padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
-                shape.fill(Color(.secondarySystemBackground).opacity(cardFillOpacity))
+                shape.fill(AppSurfaceColor.secondaryBackground.opacity(cardFillOpacity))
             }
             .adaptiveGlass(
                 .regular,

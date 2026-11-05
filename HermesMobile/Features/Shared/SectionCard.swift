@@ -55,7 +55,7 @@ struct SectionCard<Content: View, Footer: View>: View {
                 }
             }
             .background {
-                shape.fill(Color(.secondarySystemBackground).opacity(reduceTransparency ? 1 : 0.34))
+                shape.fill(AppSurfaceColor.secondaryBackground.opacity(reduceTransparency ? 1 : 0.34))
             }
             .adaptiveGlass(.regular, fallbackMaterial: .regularMaterial, in: shape)
             .clipShape(shape)

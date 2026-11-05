@@ -328,7 +328,7 @@ private struct GitCommitFileRow: View {
                 GitStatusChip(kind: file.changeKind)
             }
             .padding(12)
-            .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 12))
+            .background(AppSurfaceColor.secondaryBackground, in: .rect(cornerRadius: 12))
             .overlay {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .stroke(isSelected ? Color.accentColor.opacity(0.5) : Color(.separator).opacity(0.35), lineWidth: isSelected ? 1 : 0.5)

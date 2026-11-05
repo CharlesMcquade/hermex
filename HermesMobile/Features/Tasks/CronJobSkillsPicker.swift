@@ -211,7 +211,7 @@ struct CronJobSkillsPickerSheet: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .foregroundStyle(isArmed ? Color(.systemBackground) : Color(.tertiaryLabel))
+            .foregroundStyle(isArmed ? Color(uiColor: .appSurface(.background)) : Color(.tertiaryLabel))
             .padding(.horizontal, 12)
             .frame(maxWidth: .infinity, minHeight: PickerRowMetrics.minHeight, alignment: .leading)
             .background(
@@ -275,7 +275,7 @@ struct CronJobSkillsPickerSheet: View {
                         Text(verbatim: details)
                             .font(.caption)
                             .foregroundStyle(
-                                selected ? Color(.systemBackground).opacity(0.7) : Color.secondary
+                                selected ? Color(uiColor: .appSurface(.background)).opacity(0.7) : Color.secondary
                             )
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
                     }

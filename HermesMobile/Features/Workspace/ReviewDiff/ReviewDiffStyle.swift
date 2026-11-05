@@ -3,10 +3,10 @@ import UIKit
 /// Semantic colours for the surface. Every colour is dynamic, so a draw pass resolves
 /// light or dark from the current trait collection with no theme plumbing.
 struct ReviewDiffTheme {
-    let background = UIColor.systemBackground
+    let background = UIColor.appSurface(.background)
     let text = UIColor.label
     let mutedText = UIColor.secondaryLabel
-    let headerBackground = UIColor.secondarySystemBackground
+    let headerBackground = UIColor.appSurface(.secondaryBackground)
     let border = UIColor.separator
     let accent = UIColor.systemBlue
     let hunkBackground = UIColor.systemBlue.withAlphaComponent(0.10)

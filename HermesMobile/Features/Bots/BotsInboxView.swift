@@ -224,7 +224,7 @@ import SwiftUI
         .listStyle(.plain)
         // A split view's sidebar paints gray behind a plain List; only its rows cover it.
         .scrollContentBackground(.hidden)
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
         .overlay {
             if inbox.connection == nil {
                 GeometryReader { geometry in
@@ -236,7 +236,7 @@ import SwiftUI
                         }
                         .frame(minHeight: geometry.size.height)
                     }
-                    .background(Color(uiColor: .systemBackground))
+                    .background(AppSurfaceColor.background)
                 }
             }
         }

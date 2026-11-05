@@ -68,7 +68,7 @@ private struct AdaptiveGlassDebugFixture: View {
         }
         .padding(24)
         .frame(maxWidth: 390)
-        .background(Color(.systemGroupedBackground))
+        .background(AppSurfaceColor.groupedBackground)
     }
 
     private func sampleCard(

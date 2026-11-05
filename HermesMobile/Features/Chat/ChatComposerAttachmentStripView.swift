@@ -155,7 +155,7 @@ private struct ComposerAttachmentThumbnailView: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .bold))
                     .frame(width: 24, height: 24)
-                    .background(Circle().fill(Color(.systemBackground)))
+                    .background(Circle().fill(AppSurfaceColor.background))
                     .foregroundStyle(Color(.label))
                     .overlay(Circle().stroke(Color(.separator).opacity(0.35), lineWidth: 0.5))
             }
@@ -247,7 +247,7 @@ private struct ComposerAttachmentThumbnailView: View {
         .frame(minHeight: usesAccessibilityLayout ? 112 : 92)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppSurfaceColor.secondaryBackground)
         )
         .overlay(previewBorder(cornerRadius: 14))
         .accessibilityElement(children: .ignore)

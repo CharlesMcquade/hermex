@@ -652,7 +652,7 @@ struct MessageBubbleView: View {
         let base = tintsPrimaryActions
             ? HeaderLogoColor.color(for: themeColorHex).opacity(colorScheme == .dark ? 0.28 : 0.16)
             : (colorScheme == .dark ? Color(.systemGray3) : Color(.systemGray6))
-        return isQueued ? base.mix(with: Color(.systemBackground), by: 0.45) : base
+        return isQueued ? base.mix(with: Color(uiColor: .appSurface(.background)), by: 0.45) : base
     }
 
     private var userBubbleForeground: Color {
@@ -844,7 +844,7 @@ private struct GridAttachmentCell: View {
     private var fileCell: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppSurfaceColor.secondaryBackground)
 
             VStack(spacing: 5) {
                 Image(systemName: fileIconName)

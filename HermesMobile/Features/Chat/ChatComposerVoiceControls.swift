@@ -185,7 +185,7 @@ struct ComposerVoiceRecordingBar: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppSurfaceColor.secondaryBackground)
         )
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("Recording voice note, \(AudioDurationFormatter.string(from: elapsed))"))

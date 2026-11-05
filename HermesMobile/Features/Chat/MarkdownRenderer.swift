@@ -151,7 +151,7 @@ private struct StreamingMarkdownDisplayedContentView: View, Equatable {
 /// to the transcript background. Grouped lists set their row colour; a host
 /// on a translucent fill sets nil, which turns the fade off.
 struct MarkdownTableEdgeFadeColorKey: EnvironmentKey {
-    static let defaultValue: SwiftUI.Color? = SwiftUI.Color(.systemBackground)
+    static let defaultValue: SwiftUI.Color? = SwiftUI.Color(uiColor: .appSurface(.background))
 }
 
 extension EnvironmentValues {
@@ -326,7 +326,7 @@ private struct ChatCodeBlock: View {
     private var codeBlockBackground: SwiftUI.Color {
         colorScheme == .dark
             ? SwiftUI.Color(red: 0.04, green: 0.05, blue: 0.07)
-            : SwiftUI.Color(.secondarySystemBackground)
+            : SwiftUI.Color(uiColor: .appSurface(.secondaryBackground))
     }
 
     /// Falls back to a synchronous cache peek so a block that was already highlighted
@@ -1218,7 +1218,7 @@ enum ChatMarkdownInlineStyle {
     static let codeFontScale = 0.85
 
     static func codeBackground(dark: Bool) -> SwiftUI.Color {
-        dark ? SwiftUI.Color(red: 0.08, green: 0.09, blue: 0.12) : SwiftUI.Color(.tertiarySystemGroupedBackground)
+        dark ? SwiftUI.Color(red: 0.08, green: 0.09, blue: 0.12) : SwiftUI.Color(uiColor: .appSurface(.tertiaryGroupedBackground))
     }
 }
 

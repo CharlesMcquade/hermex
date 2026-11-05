@@ -147,7 +147,7 @@ These are app-wide preferences, stored as plain `@AppStorage` (see the block at
 the top of `Features/Settings/SettingsView.swift`). They are deliberately **not**
 per-server:
 
-- App theme (`AppTheme`)
+- App theme (`AppTheme`) and its light/dark surface styles (`AppLightSurfaceStyle`, `AppDarkSurfaceStyle`)
 - Haptics (`AppHaptics`)
 - Response-completion notifications + permission flag (`ResponseCompletionNotifications`). Local alerts cover runs that complete or fail (never stopped ones). Each carries a hash of its server, so a tap only opens its own server's chat, and an alert whose server was removed opens nothing. A server with a stored push pairing suppresses local alerts on both chat run end and cold-launch reconciliation; disabling its pairing restores this global preference without affecting other servers.
 - One-time notification offer flag (`NotificationOffer.hasOfferedKey`): asked once per install after the first run started from the phone, whichever server it ran on (#863). #769's offer after the first Hermes connection shares it. The offer reads only the active server's pairing and saved Hermes connection.

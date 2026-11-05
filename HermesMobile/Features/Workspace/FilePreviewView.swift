@@ -281,7 +281,7 @@ struct FilePreviewView: View {
                 onReturnToChat: onReturnToChat
             )
         }
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
     }
 
     /// Small files render as one document. Large ones render the chunks the view
@@ -326,7 +326,7 @@ struct FilePreviewView: View {
                 Label("Copy Contents", systemImage: "doc.on.doc")
             }
         }
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
     }
 
     private var isMarkdownFile: Bool {
@@ -349,7 +349,7 @@ struct FilePreviewView: View {
                 }
                 .padding()
             }
-            .background(Color(.systemBackground))
+            .background(AppSurfaceColor.background)
         } else {
             ContentUnavailableView {
                 Label("Could Not Preview Image", systemImage: "photo")

@@ -366,7 +366,7 @@ struct GitFileCard: View {
             GitStatusChip(kind: file.changeKind)
         }
         .padding(12)
-        .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 12))
+        .background(AppSurfaceColor.secondaryBackground, in: .rect(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(Color(.separator).opacity(0.35), lineWidth: 0.5)

@@ -504,7 +504,7 @@ struct HermexAttachmentPanelSurface: ViewModifier {
         content
             .background {
                 if reduceTransparency {
-                    Color(.secondarySystemBackground)
+                    AppSurfaceColor.secondaryBackground
                 } else {
                     Rectangle().fill(.regularMaterial)
                 }
@@ -716,7 +716,7 @@ struct HermexAttachmentPickerView: View {
                     spacing: spacing
                 ) {
                     ForEach(0..<15, id: \.self) { _ in
-                        Color(.secondarySystemBackground)
+                        AppSurfaceColor.secondaryBackground
                             .frame(width: side, height: side)
                     }
                 }

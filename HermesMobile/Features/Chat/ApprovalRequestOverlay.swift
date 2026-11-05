@@ -104,7 +104,7 @@ struct ApprovalRequestOverlay: View {
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                .background(AppSurfaceColor.secondaryBackground, in: RoundedRectangle(cornerRadius: 8))
             }
 
             if explainsApprovals, let summary {

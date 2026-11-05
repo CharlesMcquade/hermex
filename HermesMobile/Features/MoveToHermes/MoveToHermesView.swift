@@ -885,7 +885,7 @@ struct MoveToHermesBanner: View {
             .accessibilityLabel(Text("Dismiss"))
         }
         .font(.subheadline)
-        .moveToHermesCard(Color(.secondarySystemBackground))
+        .moveToHermesCard(AppSurfaceColor.secondaryBackground)
     }
 
     private func banner(_ notice: MoveToHermesNotice) -> some View {
@@ -939,7 +939,7 @@ struct MoveToHermesBanner: View {
 
 private extension View {
     /// The Move banners' shared card.
-    func moveToHermesCard(_ background: Color) -> some View {
+    func moveToHermesCard(_ background: some ShapeStyle) -> some View {
         frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

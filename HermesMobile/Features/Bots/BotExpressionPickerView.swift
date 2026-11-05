@@ -25,7 +25,7 @@ import SwiftUI
                                     .minimumScaleFactor(0.8)
                             }
                             .frame(maxWidth: .infinity, minHeight: 78)
-                            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .background(AppSurfaceColor.secondaryGroupedBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                             .overlay {
                                 if selected == expression {
                                     RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.secondary, lineWidth: 2)
@@ -41,7 +41,7 @@ import SwiftUI
             }
             .padding(.bottom, 32)
         }
-        .background(Color(uiColor: .systemBackground))
+        .background(AppSurfaceColor.background)
         .navigationTitle("Expression")
         .navigationBarTitleDisplayMode(.inline)
     }

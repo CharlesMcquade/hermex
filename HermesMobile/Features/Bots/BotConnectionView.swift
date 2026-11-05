@@ -715,7 +715,7 @@ struct BotConnectionWelcomeView: View {
             .multilineTextAlignment(.center)
             Button("Connect", action: onConnect)
                 .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
-                .foregroundStyle(Color(uiColor: .systemBackground))
+                .foregroundStyle(AppSurfaceColor.background)
                 .background(Color(uiColor: .label), in: Capsule()).buttonStyle(.plain)
         }
         .frame(maxWidth: 360).padding(24)

@@ -105,7 +105,7 @@ struct SourceFileSurface: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
-        .background(Color(.secondarySystemBackground))
+        .background(AppSurfaceColor.secondaryBackground)
     }
 
     private func selectionBar(count: Int) -> some View {
@@ -143,7 +143,7 @@ struct SourceFileSurface: View {
         Button(action: action) {
             Text(title)
                 .font(AppFont.footnote(weight: .semibold))
-                .foregroundStyle(Color(.systemBackground))
+                .foregroundStyle(AppSurfaceColor.background)
         }
         .buttonStyle(.borderedProminent)
     }

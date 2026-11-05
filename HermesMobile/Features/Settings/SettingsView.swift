@@ -116,6 +116,9 @@ struct SettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(AppSurfaceColor.groupedBackground.ignoresSafeArea())
+        .listRowBackground(AppSurfaceColor.secondaryGroupedBackground)
         .navigationTitle("Settings")
         .onAppear {
             isPushOn = PushRegistrar.shared?.pairing(for: server) != nil

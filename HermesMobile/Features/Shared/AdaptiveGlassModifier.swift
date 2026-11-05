@@ -213,7 +213,7 @@ private struct AdaptiveGlassModifier<S: Shape>: ViewModifier {
 
     private func opaqueContent(_ content: Content) -> some View {
         content
-            .background(Color(.secondarySystemBackground), in: shape)
+            .background(AppSurfaceColor.secondaryBackground, in: shape)
             .adaptiveGlassAccessibilityStroke(
                 shape: shape,
                 isVisible: true,

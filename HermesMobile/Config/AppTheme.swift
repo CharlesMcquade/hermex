@@ -56,6 +56,221 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 }
 
+/// Optional surface treatments inside the existing light and dark themes. System mode
+/// resolves the current side first, then applies the matching treatment automatically.
+enum AppLightSurfaceStyle: String, CaseIterable, Identifiable {
+    case standard
+    case sepia
+
+    static let storageKey = "appearance.lightSurfaceStyle"
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .standard: String(localized: "Default")
+        case .sepia: String(localized: "Sepia")
+        }
+    }
+
+    static func storedValue(_ rawValue: String) -> AppLightSurfaceStyle {
+        AppLightSurfaceStyle(rawValue: rawValue) ?? .standard
+    }
+}
+
+enum AppDarkSurfaceStyle: String, CaseIterable, Identifiable {
+    case black
+    case softGray
+
+    static let storageKey = "appearance.darkSurfaceStyle"
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .black: String(localized: "Black")
+        case .softGray: String(localized: "Soft Gray")
+        }
+    }
+
+    static func storedValue(_ rawValue: String) -> AppDarkSurfaceStyle {
+        AppDarkSurfaceStyle(rawValue: rawValue) ?? .black
+    }
+}
+
+enum AppSurfaceRole {
+    case background
+    case secondaryBackground
+    case tertiaryBackground
+    case groupedBackground
+    case secondaryGroupedBackground
+    case tertiaryGroupedBackground
+
+    var systemColor: Color {
+        switch self {
+        case .background: Color(.systemBackground)
+        case .secondaryBackground: Color(.secondarySystemBackground)
+        case .tertiaryBackground: Color(.tertiarySystemBackground)
+        case .groupedBackground: Color(.systemGroupedBackground)
+        case .secondaryGroupedBackground: Color(.secondarySystemGroupedBackground)
+        case .tertiaryGroupedBackground: Color(.tertiarySystemGroupedBackground)
+        }
+    }
+}
+
+struct AppSurfacePalette {
+    let colorScheme: ColorScheme
+    let lightStyle: AppLightSurfaceStyle
+    let darkStyle: AppDarkSurfaceStyle
+
+    #if canImport(UIKit)
+    func uiColor(for role: AppSurfaceRole, resolvingWith traits: UITraitCollection? = nil) -> UIColor {
+        switch colorScheme {
+        case .light where lightStyle == .sepia:
+            return Self.customColor(role: role, colors: (
+                .init(red: 244, green: 234, blue: 216),
+                .init(red: 234, green: 220, blue: 196),
+                .init(red: 224, green: 207, blue: 180),
+                .init(red: 239, green: 226, blue: 205),
+                .init(red: 248, green: 239, blue: 224),
+                .init(red: 234, green: 220, blue: 196)
+            ))
+        case .dark where darkStyle == .softGray:
+            return Self.customColor(role: role, colors: (
+                .init(red: 28, green: 28, blue: 30),
+                .init(red: 44, green: 44, blue: 46),
+                .init(red: 58, green: 58, blue: 60),
+                .init(red: 22, green: 22, blue: 24),
+                .init(red: 44, green: 44, blue: 46),
+                .init(red: 58, green: 58, blue: 60)
+            ))
+        default:
+            let systemColor: UIColor = switch role {
+            case .background: .systemBackground
+            case .secondaryBackground: .secondarySystemBackground
+            case .tertiaryBackground: .tertiarySystemBackground
+            case .groupedBackground: .systemGroupedBackground
+            case .secondaryGroupedBackground: .secondarySystemGroupedBackground
+            case .tertiaryGroupedBackground: .tertiarySystemGroupedBackground
+            }
+            let style: UIUserInterfaceStyle = colorScheme == .dark ? .dark : .light
+            let traits = traits ?? UITraitCollection(userInterfaceStyle: style)
+            return systemColor.resolvedColor(with: traits)
+        }
+    }
+
+    private static func customColor(
+        role: AppSurfaceRole,
+        colors: (RGB, RGB, RGB, RGB, RGB, RGB)
+    ) -> UIColor {
+        let rgb = switch role {
+        case .background: colors.0
+        case .secondaryBackground: colors.1
+        case .tertiaryBackground: colors.2
+        case .groupedBackground: colors.3
+        case .secondaryGroupedBackground: colors.4
+        case .tertiaryGroupedBackground: colors.5
+        }
+        return rgb.uiColor
+    }
+
+    struct RGB {
+        let red: CGFloat
+        let green: CGFloat
+        let blue: CGFloat
+
+        init(red: Int, green: Int, blue: Int) {
+            self.red = CGFloat(red) / 255
+            self.green = CGFloat(green) / 255
+            self.blue = CGFloat(blue) / 255
+        }
+
+        var uiColor: UIColor { UIColor(red: red, green: green, blue: blue, alpha: 1) }
+    }
+    #endif
+}
+
+extension UIColor {
+    /// UIKit surfaces use the same persisted choices as SwiftUI's environment-backed style.
+    static func appSurface(_ role: AppSurfaceRole) -> UIColor {
+        UIColor { traits in
+            let defaults = UserDefaults.standard
+            return AppSurfacePalette(
+                colorScheme: traits.userInterfaceStyle == .dark ? .dark : .light,
+                lightStyle: AppLightSurfaceStyle.storedValue(
+                    defaults.string(forKey: AppLightSurfaceStyle.storageKey) ?? ""),
+                darkStyle: AppDarkSurfaceStyle.storedValue(
+                    defaults.string(forKey: AppDarkSurfaceStyle.storageKey) ?? "")
+            ).uiColor(for: role, resolvingWith: traits)
+        }
+    }
+}
+
+/// A semantic surface that works anywhere a Color does: as a shape style, an opacity-capable
+/// foreground, or a standalone background view. Resolving through the environment keeps a
+/// variant change live without discarding navigation or chat state.
+struct AppSurfaceColor: ShapeStyle, View {
+    let role: AppSurfaceRole
+    private var alpha: Double = 1
+    @Environment(\.self) private var environment
+
+    static var background: Self { .init(role: .background) }
+    static var secondaryBackground: Self { .init(role: .secondaryBackground) }
+    static var tertiaryBackground: Self { .init(role: .tertiaryBackground) }
+    static var groupedBackground: Self { .init(role: .groupedBackground) }
+    static var secondaryGroupedBackground: Self { .init(role: .secondaryGroupedBackground) }
+    static var tertiaryGroupedBackground: Self { .init(role: .tertiaryGroupedBackground) }
+
+    nonisolated func resolve(in environment: EnvironmentValues) -> Color {
+        let lightStyle = AppLightSurfaceStyle.storedValue(environment.appLightSurfaceStyleRawValue)
+        let darkStyle = AppDarkSurfaceStyle.storedValue(environment.appDarkSurfaceStyleRawValue)
+        let usesCustomPalette = (environment.colorScheme == .light && lightStyle == .sepia)
+            || (environment.colorScheme == .dark && darkStyle == .softGray)
+        guard usesCustomPalette else {
+            if alpha == 1 { return role.systemColor }
+            return role.systemColor.opacity(alpha)
+        }
+        #if canImport(UIKit)
+        let palette = AppSurfacePalette(
+            colorScheme: environment.colorScheme,
+            lightStyle: lightStyle,
+            darkStyle: darkStyle
+        )
+        return Color(uiColor: palette.uiColor(for: role)).opacity(alpha)
+        #else
+        return role.systemColor.opacity(alpha)
+        #endif
+    }
+
+    var body: some View { resolve(in: environment) }
+
+    func opacity(_ opacity: Double) -> Self {
+        var copy = self
+        copy.alpha *= opacity
+        return copy
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var appLightSurfaceStyleRawValue = AppLightSurfaceStyle.standard.rawValue
+    @Entry var appDarkSurfaceStyleRawValue = AppDarkSurfaceStyle.black.rawValue
+}
+
+private struct AppSurfaceStyleEnvironment: ViewModifier {
+    @AppStorage(AppLightSurfaceStyle.storageKey) private var lightStyle = AppLightSurfaceStyle.standard.rawValue
+    @AppStorage(AppDarkSurfaceStyle.storageKey) private var darkStyle = AppDarkSurfaceStyle.black.rawValue
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.appLightSurfaceStyleRawValue, lightStyle)
+            .environment(\.appDarkSurfaceStyleRawValue, darkStyle)
+    }
+}
+
+extension View {
+    func appSurfaceStyles() -> some View {
+        modifier(AppSurfaceStyleEnvironment())
+    }
+}
+
 struct HeaderLogoColorPreset: Identifiable, Equatable {
     let name: String
     let hex: String

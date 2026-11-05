@@ -23,7 +23,7 @@ import UIKit
         let window = UIWindow(windowScene: windowScene)
         window.windowLevel = .alert + 1
         let host = UIHostingController(rootView: AppLockView(lock: lock, icon: .current))
-        host.view.backgroundColor = .systemBackground
+        host.view.backgroundColor = .appSurface(.background)
         window.rootViewController = host
         // VoiceOver reads only the lock while it is up.
         window.accessibilityViewIsModal = true
@@ -171,7 +171,8 @@ struct AppLockView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
         }
-        .background(Color(.systemBackground).ignoresSafeArea())
+        .background(AppSurfaceColor.background.ignoresSafeArea())
+        .appSurfaceStyles()
     }
 
     private var locked: some View {

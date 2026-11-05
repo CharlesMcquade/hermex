@@ -156,7 +156,7 @@ struct SelectableTextPresentationView: View {
         NavigationStack {
             SelectableTextView(text: selection.text)
                 .accessibilityIdentifier("selectable-response-text")
-                .background(Color(.systemBackground))
+                .background(AppSurfaceColor.background)
                 .navigationTitle("Select Text")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -177,7 +177,7 @@ struct SelectableTextView: UIViewRepresentable {
         let textView = UITextView()
         textView.isEditable = false
         textView.isSelectable = true
-        textView.backgroundColor = .systemBackground
+        textView.backgroundColor = .appSurface(.background)
         textView.font = .preferredFont(forTextStyle: .body)
         textView.adjustsFontForContentSizeCategory = true
         // A wrapped UITextView does not inherit SwiftUI's layoutDirection; `.natural`

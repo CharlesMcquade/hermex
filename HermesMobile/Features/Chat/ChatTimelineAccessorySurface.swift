@@ -9,7 +9,7 @@ private struct ChatTimelineAccessorySurfaceModifier<SurfaceShape: Shape>: ViewMo
     func body(content: Content) -> some View {
         content
             .background(
-                Color(.secondarySystemBackground).opacity(colorScheme == .dark ? 0.28 : 0.48),
+                AppSurfaceColor.secondaryBackground.opacity(colorScheme == .dark ? 0.28 : 0.48),
                 in: shape
             )
             .adaptiveGlass(
@@ -33,7 +33,7 @@ private struct ChatTimelineAccessoryInsetSurfaceModifier: ViewModifier {
 
     private var backgroundColor: Color {
         if reduceTransparency {
-            return Color(.secondarySystemGroupedBackground)
+            return Color(uiColor: .appSurface(.secondaryGroupedBackground))
         }
 
         return Color(.secondarySystemFill).opacity(0.72)

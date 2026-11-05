@@ -58,7 +58,7 @@ struct ProvidersView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
         .navigationTitle("Providers")
         .task {
             await viewModel.load()

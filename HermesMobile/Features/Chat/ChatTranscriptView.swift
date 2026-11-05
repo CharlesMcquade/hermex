@@ -164,6 +164,12 @@ struct ChatTranscriptView: View {
     }
 
     var body: some View {
+        transcriptContent
+            .background(AppSurfaceColor.background)
+    }
+
+    @ViewBuilder
+    private var transcriptContent: some View {
         switch Placeholder(isLoading: isLoading, errorMessage: errorMessage, isEmpty: messages.isEmpty,
                            showsTurnOutcome: turnOutcome != nil,
                            showsQueuedPrompt: queuedPrompt != nil || waitingSend != nil) {
@@ -262,7 +268,6 @@ struct ChatTranscriptView: View {
                     }
                 }
                 .animation(ChatMotion.quickState(reduceMotion: reduceMotion), value: showsScrollToBottomButton)
-                .background(Color(.systemBackground))
                 .background {
                     StreamingFollowTrigger(trigger: streamingScrollTrigger) {
                         if isFollowingLatestContent {

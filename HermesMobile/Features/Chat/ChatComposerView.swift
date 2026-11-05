@@ -102,7 +102,7 @@ private struct ComposerStatusView: View {
     }
 
     private var backgroundColor: Color {
-        isError ? Color.red.opacity(0.08) : Color(.secondarySystemBackground)
+        isError ? Color.red.opacity(0.08) : Color(uiColor: .appSurface(.secondaryBackground))
     }
 
     private var borderColor: Color {
@@ -705,7 +705,7 @@ struct MessageComposerView: View {
                         // the keyboard gap and the bottom safe area, so no strip
                         // of transcript shows around the row.
                         .background(
-                            Color(.systemBackground)
+                            AppSurfaceColor.background
                                 .padding(.top, -10)
                                 .padding(.bottom, -12)
                                 .ignoresSafeArea(edges: .bottom)

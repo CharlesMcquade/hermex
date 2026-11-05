@@ -133,7 +133,7 @@ struct FileBrowserView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal)
                     .padding(.vertical, 10)
-                    .background(Color(.secondarySystemBackground))
+                    .background(AppSurfaceColor.secondaryBackground)
                 } else if let errorMessage = viewModel.errorMessage {
                     HStack(spacing: 12) {
                         Label(errorMessage, systemImage: "exclamationmark.triangle")
@@ -153,7 +153,7 @@ struct FileBrowserView: View {
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 10)
-                    .background(Color(.secondarySystemBackground))
+                    .background(AppSurfaceColor.secondaryBackground)
                 }
             }
         }
@@ -249,7 +249,7 @@ struct FileBrowserView: View {
         .background(Color(.tertiarySystemFill).opacity(0.5), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .padding(.horizontal)
         .padding(.vertical, 10)
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
         .overlay(alignment: .bottom) {
             Divider()
         }

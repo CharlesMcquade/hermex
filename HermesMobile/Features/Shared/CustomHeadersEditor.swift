@@ -64,7 +64,7 @@ struct CustomHeadersEditor: View {
             .font(.subheadline)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .background(AppSurfaceColor.secondaryBackground, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .strokeBorder(Color(.separator), lineWidth: 1)

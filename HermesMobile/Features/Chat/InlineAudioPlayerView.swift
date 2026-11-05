@@ -54,7 +54,7 @@ struct InlineAudioPlayerView: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
+                .fill(AppSurfaceColor.secondaryBackground)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)

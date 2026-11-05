@@ -10,7 +10,7 @@ extension View {
     /// happens to sit underneath.
     func pendingRequestCardSurface(cornerRadius: CGFloat) -> some View {
         background(
-            Color(.secondarySystemBackground),
+            AppSurfaceColor.secondaryBackground,
             in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         )
         .overlay(
@@ -32,7 +32,7 @@ extension View {
     @ViewBuilder
     func pendingRequestChoiceSurface(reduceTransparency: Bool) -> some View {
         if reduceTransparency {
-            background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            background(AppSurfaceColor.tertiaryBackground, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(Color(.separator), lineWidth: 1)

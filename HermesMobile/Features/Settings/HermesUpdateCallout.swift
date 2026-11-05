@@ -209,7 +209,7 @@ import UIKit
             .buttonStyle(.borderless)
         }
         .padding(.vertical, 6).padding(.horizontal, 8)
-        .background(Color(.systemBackground).opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
+        .background(AppSurfaceColor.background.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
         .padding(.top, 4)
     }
 }

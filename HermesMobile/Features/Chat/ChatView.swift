@@ -264,7 +264,7 @@ private struct ListenPlaybackBar: View {
                 .monospacedDigit()
                 .frame(minWidth: 36, minHeight: 30)
                 .padding(.horizontal, 6)
-                .background(Color(.secondarySystemBackground), in: Capsule())
+                .background(AppSurfaceColor.secondaryBackground, in: Capsule())
         }
         .disabled(!isReady)
         .accessibilityLabel(String(localized: "Playback speed"))
@@ -4678,7 +4678,7 @@ private struct LegacyToolbarClusterStyle: ViewModifier {
             content
                 .padding(.horizontal, 4)
                 .background(
-                    Color(.secondarySystemBackground).opacity(colorScheme == .dark ? 0.24 : 0.42),
+                    AppSurfaceColor.secondaryBackground.opacity(colorScheme == .dark ? 0.24 : 0.42),
                     in: Capsule()
                 )
                 .adaptiveGlass(
@@ -4866,7 +4866,7 @@ struct ChatNavigationBackground: ViewModifier {
         if #available(iOS 26, *), !reduceTransparency {
             return AnyShapeStyle(.regularMaterial)
         }
-        return AnyShapeStyle(Color(uiColor: .systemBackground))
+        return AnyShapeStyle(AppSurfaceColor.background)
     }
 }
 

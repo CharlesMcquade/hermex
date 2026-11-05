@@ -346,7 +346,7 @@ struct CronJobProfilePickerSheet: View {
                         Text(details)
                             .font(.caption)
                             .foregroundStyle(
-                                selected ? Color(.systemBackground).opacity(0.7) : Color.secondary
+                                selected ? Color(uiColor: .appSurface(.background)).opacity(0.7) : Color.secondary
                             )
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                     }

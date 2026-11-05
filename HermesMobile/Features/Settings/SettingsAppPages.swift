@@ -6,6 +6,8 @@ import SwiftUI
 /// avatar color stays on the server's page.
 struct SettingsAppearancePage: View {
     @AppStorage(AppTheme.storageKey) private var appThemeRawValue = AppTheme.system.rawValue
+    @AppStorage(AppLightSurfaceStyle.storageKey) private var appLightSurfaceStyleRawValue = AppLightSurfaceStyle.standard.rawValue
+    @AppStorage(AppDarkSurfaceStyle.storageKey) private var appDarkSurfaceStyleRawValue = AppDarkSurfaceStyle.black.rawValue
     @AppStorage(PrimaryActionTintSettings.isEnabledKey) private var tintsPrimaryActions = false
     @AppStorage(HeaderLogoColor.storageKey) private var appColorHex = HeaderLogoColor.defaultHex
 
@@ -27,6 +29,26 @@ struct SettingsAppearancePage: View {
                     SettingsLabel(title: String(localized: "Theme"), systemImage: "circle.lefthalf.filled")
                 }
 
+                Picker(selection: $appLightSurfaceStyleRawValue) {
+                    ForEach(AppLightSurfaceStyle.allCases) { style in
+                        Text(style.title).tag(style.rawValue)
+                    }
+                } label: {
+                    SettingsLabel(title: String(localized: "Light"), systemImage: "sun.max")
+                }
+
+                Picker(selection: $appDarkSurfaceStyleRawValue) {
+                    ForEach(AppDarkSurfaceStyle.allCases) { style in
+                        Text(style.title).tag(style.rawValue)
+                    }
+                } label: {
+                    SettingsLabel(title: String(localized: "Dark"), systemImage: "moon")
+                }
+            } footer: {
+                Text("System uses your Light and Dark choices automatically.")
+            }
+
+            Section {
                 HeaderLogoColorSettings(selectedHex: $appColorHex, customColor: appColorBinding)
 
                 Toggle(isOn: $tintsPrimaryActions) {

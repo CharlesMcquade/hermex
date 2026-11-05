@@ -14,6 +14,8 @@ struct ContentView: View {
 
     var body: some View {
         content
+            .background(AppSurfaceColor.background.ignoresSafeArea())
+            .appSurfaceStyles()
             // The active server's colour is the app's accent: selection, menus, links, toggles.
             .tint(HeaderLogoColor.accentColor(for: headerLogoColorHex))
             .moveToHermesNotices(authManager)

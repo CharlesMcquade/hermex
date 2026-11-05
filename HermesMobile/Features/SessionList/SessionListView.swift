@@ -550,7 +550,7 @@ struct SessionListView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
-        .background(Color(.secondarySystemBackground))
+        .background(AppSurfaceColor.secondaryBackground)
         .overlay(alignment: .bottom) {
             Divider()
         }
@@ -638,7 +638,7 @@ struct SessionListView: View {
 
     private var sessionListSurface: some View {
         ZStack(alignment: .bottomTrailing) {
-            Color(.systemBackground)
+            AppSurfaceColor.background
                 .ignoresSafeArea()
 
             content
@@ -920,7 +920,7 @@ struct SessionListView: View {
         .environment(\.defaultMinListRowHeight, 0)
         .scrollContentBackground(.hidden)
         .scrollPosition(id: $sidebarScrollPosition)
-        .background(Color(.systemBackground))
+        .background(AppSurfaceColor.background)
         .scrollDismissesKeyboard(.interactively)
         // Disclosure subrows are real List rows; drive their fold from the List
         // so insert/remove animates. Value-based so it works with @AppStorage.
@@ -2117,7 +2117,7 @@ private struct PendingNewChatView: View {
 
     private var pendingContent: some View {
         ZStack(alignment: .bottom) {
-            Color(.systemBackground)
+            AppSurfaceColor.background
                 .ignoresSafeArea()
 
             ContentUnavailableView {

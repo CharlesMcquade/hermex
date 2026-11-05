@@ -77,7 +77,7 @@ import SwiftUI
                 .padding(.horizontal, 16)
                 .padding(.bottom, 24)
             }
-            .background(Color(uiColor: .systemBackground))
+            .background(AppSurfaceColor.background)
             .scrollDismissesKeyboard(.interactively)
             .disabled(creator.phase == .creating)
             .safeAreaInset(edge: .bottom) {
@@ -211,7 +211,7 @@ import SwiftUI
             if let note = creator.note { Text(note).font(.caption).foregroundStyle(.secondary) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16).background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18))
+        .padding(16).background(AppSurfaceColor.secondaryGroupedBackground, in: RoundedRectangle(cornerRadius: 18))
         .padding(.bottom, 16)
     }
 
@@ -254,7 +254,7 @@ import SwiftUI
 
     private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         VStack(spacing: 0, content: content)
-            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(AppSurfaceColor.secondaryGroupedBackground, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private func navigationRow(_ title: String, subtitle: String?, value: String, systemImage: String,
