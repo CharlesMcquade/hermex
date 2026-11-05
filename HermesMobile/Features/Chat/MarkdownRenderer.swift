@@ -147,11 +147,11 @@ private struct StreamingMarkdownDisplayedContentView: View, Equatable {
 
 }
 
-/// The background a wide markdown table fades its hidden edges into. Defaults
-/// to the transcript background. Grouped lists set their row colour; a host
-/// on a translucent fill sets nil, which turns the fade off.
+/// The background a wide markdown table fades its hidden edges into. Nil uses
+/// the current themed transcript background. Grouped lists set their row colour;
+/// a host on a translucent fill uses `.clear` to disable the fade.
 struct MarkdownTableEdgeFadeColorKey: EnvironmentKey {
-    static let defaultValue: SwiftUI.Color? = SwiftUI.Color(uiColor: .appSurface(.background))
+    static let defaultValue: SwiftUI.Color? = nil
 }
 
 extension EnvironmentValues {
@@ -189,6 +189,7 @@ private struct StreamingMarkdownChunkedView: View {
 }
 
 private struct ChatMarkdownView: View {
+    @Environment(\.self) private var environment
     let content: String
     let colorScheme: ColorScheme
     let isStreaming: Bool
@@ -205,6 +206,7 @@ private struct ChatMarkdownView: View {
             .environment(\.containsInlineMath, content.contains(InlineMathSource.marker)
                 || MarkdownContentRenderingPolicy.hasTooManyInlineElements(content))
             .markdownTheme(MarkdownUI.Theme.chat(
+                environment: environment,
                 colorScheme: colorScheme,
                 isStreaming: isStreaming,
                 bodySize: ChatTypography(dynamicTypeSize: dynamicTypeSize).bodySize
@@ -246,6 +248,7 @@ private struct ChatCodeBlock: View {
     let isStreaming: Bool
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.self) private var environment
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(ChatTranscriptDisplaySettings.wrapsCodeBlockLinesKey) private var wrapsCodeBlockLines = false
     @AppStorage(AppHaptics.isEnabledKey) private var isHapticsEnabled = true
@@ -326,7 +329,7 @@ private struct ChatCodeBlock: View {
     private var codeBlockBackground: SwiftUI.Color {
         colorScheme == .dark
             ? SwiftUI.Color(red: 0.04, green: 0.05, blue: 0.07)
-            : SwiftUI.Color(uiColor: .appSurface(.secondaryBackground))
+            : AppSurfaceColor.secondaryBackground.resolve(in: environment)
     }
 
     /// Falls back to a synchronous cache peek so a block that was already highlighted
@@ -1217,14 +1220,16 @@ struct ChatTypography: Equatable {
 enum ChatMarkdownInlineStyle {
     static let codeFontScale = 0.85
 
-    static func codeBackground(dark: Bool) -> SwiftUI.Color {
-        dark ? SwiftUI.Color(red: 0.08, green: 0.09, blue: 0.12) : SwiftUI.Color(uiColor: .appSurface(.tertiaryGroupedBackground))
+    static func codeBackground(dark: Bool, environment: EnvironmentValues? = nil) -> SwiftUI.Color {
+        guard !dark else { return SwiftUI.Color(red: 0.08, green: 0.09, blue: 0.12) }
+        return environment.map { AppSurfaceColor.tertiaryGroupedBackground.resolve(in: $0) }
+            ?? SwiftUI.Color(.tertiarySystemGroupedBackground)
     }
 }
 
 private extension MarkdownUI.Theme {
     /// `bodySize` is `ChatTypography.bodySize`; headings and inline code scale relative to it.
-    static func chat(colorScheme: ColorScheme, isStreaming: Bool, bodySize: CGFloat) -> MarkdownUI.Theme {
+    static func chat(environment: EnvironmentValues, colorScheme: ColorScheme, isStreaming: Bool, bodySize: CGFloat) -> MarkdownUI.Theme {
         MarkdownUI.Theme.gitHub
             .text {
                 ForegroundColor(.primary)
@@ -1246,7 +1251,7 @@ private extension MarkdownUI.Theme {
             .code {
                 FontFamilyVariant(.monospaced)
                 FontSize(.em(ChatMarkdownInlineStyle.codeFontScale))
-                BackgroundColor(ChatMarkdownInlineStyle.codeBackground(dark: colorScheme == .dark))
+                BackgroundColor(ChatMarkdownInlineStyle.codeBackground(dark: colorScheme == .dark, environment: environment))
             }
             .codeBlock { configuration in
                 MathFenceOrCodeBlock(
@@ -1287,6 +1292,7 @@ private extension MarkdownUI.Theme {
 }
 
 private struct ChatMarkdownTable: View {
+    @Environment(\.self) private var environment
     static let cellMinWidth: CGFloat = 96
     static let cellMaxWidth: CGFloat = 260
 
@@ -1310,7 +1316,7 @@ private struct ChatMarkdownTable: View {
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
 
         if let edgeFadeColor {
-            scroller.horizontalOverflowFades(.overlay(edgeFadeColor))
+            scroller.horizontalOverflowFades(.overlay(edgeFadeColor ?? AppSurfaceColor.background.resolve(in: environment)))
         } else {
             scroller
         }
@@ -1319,13 +1325,13 @@ private struct ChatMarkdownTable: View {
     private var backgroundColor: SwiftUI.Color {
         colorScheme == .dark
             ? SwiftUI.Color(red: 0.094, green: 0.098, blue: 0.114)
-            : SwiftUI.Color.white
+            : AppSurfaceColor.secondaryGroupedBackground.resolve(in: environment)
     }
 
     private var secondaryBackgroundColor: SwiftUI.Color {
         colorScheme == .dark
             ? SwiftUI.Color(red: 0.145, green: 0.149, blue: 0.165)
-            : SwiftUI.Color(red: 0.969, green: 0.969, blue: 0.976)
+            : AppSurfaceColor.tertiaryGroupedBackground.resolve(in: environment)
     }
 
     private var borderColor: SwiftUI.Color {

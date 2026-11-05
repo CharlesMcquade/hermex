@@ -311,6 +311,7 @@ struct MathInlineText: View {
     var fontScale: Double = 1
     var weight: Font.Weight = .regular
     var tintImages = false
+    @Environment(\.self) private var environment
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
@@ -327,10 +328,10 @@ struct MathInlineText: View {
     var body: some View {
         let currentRequest = request
         let images = loaded?.style == currentRequest.imageStyle ? loaded?.images ?? [:] : [:]
-        let cached = try? currentRequest.cachedResult(images: images)
+        let cached = try? currentRequest.cachedResult(images: images, environment: environment)
         let loadIdentity = cached == nil ? try? currentRequest.imageLoadIdentity() : nil
         Group {
-            if let rendered = cached ?? (try? currentRequest.placeholder(images: images)) {
+            if let rendered = cached ?? (try? currentRequest.placeholder(images: images, environment: environment)) {
                 rendered.text
                     .responseSelectableText(rendered.selectableText, separator: separator, tableColumn: tableColumn)
                     .accessibilityLabel(rendered.accessibilityText)
@@ -339,7 +340,7 @@ struct MathInlineText: View {
         .font(.system(size: fontSize * fontScale, weight: weight))
         .task(id: loadIdentity) {
             guard loadIdentity != nil else { return }
-            try? await currentRequest.renderWithRetries(images: images) { result in
+            try? await currentRequest.renderWithRetries(images: images, environment: environment) { result in
                 loaded = (currentRequest.imageStyle, result.images)
             }
         }
@@ -394,7 +395,7 @@ struct InlineMathTextRequest: Equatable {
 
     /// The usual streaming path: source changes, but every completed expression
     /// is already cached. Compose the new Text without async work or state writes.
-    func cachedResult(images suppliedImages: [URL: Image] = [:]) throws -> InlineMathTextResult? {
+    func cachedResult(images suppliedImages: [URL: Image] = [:], environment: EnvironmentValues? = nil) throws -> InlineMathTextResult? {
         let attributed = try parsed()
         var images = suppliedImages
         for run in attributed.runs {
@@ -405,11 +406,11 @@ struct InlineMathTextRequest: Equatable {
             }
             images[url] = tintImages ? Image(uiImage: image).renderingMode(.template) : Image(uiImage: image)
         }
-        return compose(attributed, images: images)
+        return compose(attributed, images: images, environment: environment)
     }
 
     /// Always compose current prose, retaining any already available attachments.
-    func placeholder(images suppliedImages: [URL: Image] = [:]) throws -> InlineMathTextResult {
+    func placeholder(images suppliedImages: [URL: Image] = [:], environment: EnvironmentValues? = nil) throws -> InlineMathTextResult {
         let attributed = try parsed()
         var images = suppliedImages
         for run in attributed.runs {
@@ -418,7 +419,7 @@ struct InlineMathTextRequest: Equatable {
                   let image = InlineMathImageCache.shared.cachedImage(latex: latex, fontSize: fontSize, dark: dark, scale: scale) else { continue }
             images[url] = tintImages ? Image(uiImage: image).renderingMode(.template) : Image(uiImage: image)
         }
-        return compose(attributed, images: images)
+        return compose(attributed, images: images, environment: environment)
     }
 
     /// Retry missing assets without refetching successes. The owning view task
@@ -427,6 +428,7 @@ struct InlineMathTextRequest: Equatable {
     func renderWithRetries(
         provider: (any InlineImageProvider)? = nil,
         images: [URL: Image] = [:],
+        environment: EnvironmentValues? = nil,
         beforeRetry: (Int) async throws -> Void = { attempt in
             try await Task.sleep(for: .seconds(attempt == 1 ? 2 : 8))
         },
@@ -436,16 +438,16 @@ struct InlineMathTextRequest: Equatable {
         for attempt in 0..<3 {
             if attempt > 0 { try await beforeRetry(attempt) }
             try Task.checkCancellation()
-            let result = try await render(provider: provider, images: available)
+            let result = try await render(provider: provider, images: available, environment: environment)
             try Task.checkCancellation()
             available = result.images
             didRender(result)
-            if try cachedResult(images: available) != nil { return }
+            if try cachedResult(images: available, environment: environment) != nil { return }
         }
     }
 
     @MainActor
-    func render(provider suppliedProvider: (any InlineImageProvider)? = nil, images suppliedImages: [URL: Image] = [:]) async throws -> InlineMathTextResult {
+    func render(provider suppliedProvider: (any InlineImageProvider)? = nil, images suppliedImages: [URL: Image] = [:], environment: EnvironmentValues? = nil) async throws -> InlineMathTextResult {
         try Task.checkCancellation()
         let attributed = try parsed()
         let provider = suppliedProvider ?? InlineMathImageProvider(fontSize: fontSize, colorScheme: dark ? .dark : .light, scale: scale, tintImages: tintImages)
@@ -463,7 +465,7 @@ struct InlineMathTextRequest: Equatable {
             }
         }
         try Task.checkCancellation()
-        return compose(attributed, images: images)
+        return compose(attributed, images: images, environment: environment)
     }
 
     func parsed() throws -> AttributedString {
@@ -500,7 +502,7 @@ struct InlineMathTextRequest: Equatable {
         return attributed
     }
 
-    private func compose(_ attributed: AttributedString, images: [URL: Image]) -> InlineMathTextResult {
+    private func compose(_ attributed: AttributedString, images: [URL: Image], environment: EnvironmentValues? = nil) -> InlineMathTextResult {
         // Prose runs share one `Text`: a `+` per run nests as deep as the paragraph is long.
         var text = Text("")
         var prose = AttributedString()
@@ -529,7 +531,7 @@ struct InlineMathTextRequest: Equatable {
                 var span = AttributedString(attributed[run.range])
                 if run.inlinePresentationIntent?.contains(.code) == true {
                     span.font = .system(size: fontSize * ChatMarkdownInlineStyle.codeFontScale, weight: fontWeight, design: .monospaced)
-                    span.backgroundColor = ChatMarkdownInlineStyle.codeBackground(dark: dark)
+                    span.backgroundColor = ChatMarkdownInlineStyle.codeBackground(dark: dark, environment: environment)
                 }
                 prose.append(span)
                 let plain = String(span.characters)

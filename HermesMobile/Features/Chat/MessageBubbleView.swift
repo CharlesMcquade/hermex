@@ -10,6 +10,7 @@ struct MessageBubbleView: View {
     @State private var userBubbleIsExpanded = false
     @State private var settledReplyMedia = SettledReplyMedia()
     @Environment(\.chatDisclosureToggled) private var chatDisclosureToggled
+    @Environment(\.self) private var environment
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.layoutDirection) private var layoutDirection
@@ -367,7 +368,7 @@ struct MessageBubbleView: View {
             MarkdownRenderer(content: messageText, isStreaming: isStreaming)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 // The card's material is translucent, so no solid fade matches it.
-                .environment(\.markdownTableEdgeFadeColor, nil)
+                .environment(\.markdownTableEdgeFadeColor, .clear)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
@@ -652,7 +653,7 @@ struct MessageBubbleView: View {
         let base = tintsPrimaryActions
             ? HeaderLogoColor.color(for: themeColorHex).opacity(colorScheme == .dark ? 0.28 : 0.16)
             : (colorScheme == .dark ? Color(.systemGray3) : Color(.systemGray6))
-        return isQueued ? base.mix(with: Color(uiColor: .appSurface(.background)), by: 0.45) : base
+        return isQueued ? base.mix(with: AppSurfaceColor.background.resolve(in: environment), by: 0.45) : base
     }
 
     private var userBubbleForeground: Color {

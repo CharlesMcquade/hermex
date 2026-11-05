@@ -78,6 +78,7 @@ struct ReviewDiffSurface: UIViewRepresentable {
         coordinator.onLinePress = onLinePress
         coordinator.onRefresh = onRefresh
         coordinator.onVisibleRowRangeChange = onVisibleRowRangeChange
+        view.apply(environment: context.environment)
 
         if coordinator.appliedRowsVersion != rowsVersion {
             coordinator.appliedRowsVersion = rowsVersion

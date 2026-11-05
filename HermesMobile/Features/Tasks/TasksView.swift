@@ -211,7 +211,7 @@ struct TasksView: View {
         .pickerStyle(.segmented)
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(.bar)
+        .background(AppSurfaceColor.background)
     }
 
     /// One line when a Hermes host's scheduler has stopped ticking (#1040), above

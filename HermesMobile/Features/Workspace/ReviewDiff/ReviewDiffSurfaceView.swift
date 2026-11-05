@@ -1,3 +1,4 @@
+import SwiftUI
 import UIKit
 
 /// Scroll host for `ReviewDiffCanvasView`. The canvas is exactly one viewport tall and
@@ -102,6 +103,12 @@ final class ReviewDiffSurfaceView: UIView, UIScrollViewDelegate {
     }
 
     // MARK: - Inputs
+
+    func apply(environment: EnvironmentValues) {
+        canvas.apply(environment: environment)
+        backgroundColor = canvas.theme.background
+        scrollView.backgroundColor = canvas.theme.background
+    }
 
     /// Replaces the rows, keeping the file at the top of the viewport where it was,
     /// or the held file jump.

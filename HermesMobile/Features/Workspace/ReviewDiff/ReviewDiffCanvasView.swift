@@ -23,6 +23,7 @@
 // SOFTWARE.
 
 import OSLog
+import SwiftUI
 import UIKit
 
 struct ReviewDiffLinePress: Equatable {
@@ -56,7 +57,10 @@ final class ReviewDiffCanvasView: UIView, UIGestureRecognizerDelegate {
 
     private(set) var layout: ReviewDiffLayout
     private(set) var style: ReviewDiffStyle
-    let theme = ReviewDiffTheme()
+    private(set) var theme = ReviewDiffTheme()
+    private var appliedColorScheme: ColorScheme?
+    private var appliedLightSurfaceStyle: String?
+    private var appliedDarkSurfaceStyle: String?
     let presentation: ReviewDiffPresentation
 
     var viewedFileIDs: Set<String> = [] {
@@ -169,6 +173,23 @@ final class ReviewDiffCanvasView: UIView, UIGestureRecognizerDelegate {
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) is not supported")
+    }
+
+    func apply(environment: EnvironmentValues) {
+        let colorScheme = environment.colorScheme
+        let lightStyle = environment.appLightSurfaceStyleRawValue
+        let darkStyle = environment.appDarkSurfaceStyleRawValue
+        guard colorScheme != appliedColorScheme
+                || lightStyle != appliedLightSurfaceStyle
+                || darkStyle != appliedDarkSurfaceStyle
+        else { return }
+
+        appliedColorScheme = colorScheme
+        appliedLightSurfaceStyle = lightStyle
+        appliedDarkSurfaceStyle = darkStyle
+        theme = ReviewDiffTheme(environment: environment)
+        backgroundColor = theme.background
+        setNeedsDisplay()
     }
 
     deinit {

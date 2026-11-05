@@ -94,7 +94,7 @@ import SwiftUI
                 .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
                 .disabled(!creator.canCreate && creator.phase != .created)
                 .padding(.horizontal, 24).padding(.vertical, 12)
-                .background(.bar)
+                .background(AppSurfaceColor.background)
             }
             .navigationTitle(creator.isDuplicate ? "Duplicate Bot" : "New Bot")
             .navigationBarTitleDisplayMode(.inline)

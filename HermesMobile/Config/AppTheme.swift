@@ -190,6 +190,8 @@ struct AppSurfacePalette {
 
 extension UIColor {
     /// UIKit surfaces use the same persisted choices as SwiftUI's environment-backed style.
+    /// A preference-only variant change is not a UITrait change: a live representable must
+    /// resolve a new value from `context.environment` and repaint, not rely on this alone.
     static func appSurface(_ role: AppSurfaceRole) -> UIColor {
         UIColor { traits in
             let defaults = UserDefaults.standard

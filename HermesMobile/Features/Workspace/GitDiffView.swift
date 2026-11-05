@@ -43,6 +43,8 @@ struct GitDiffView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+    @Environment(\.appLightSurfaceStyleRawValue) private var lightSurfaceStyle
+    @Environment(\.appDarkSurfaceStyleRawValue) private var darkSurfaceStyle
 
     private static let maxConcurrentDiffLoads = 4
 
@@ -79,7 +81,12 @@ struct GitDiffView: View {
     private var selectedRowIDs: Set<String> { selection.selectedRowIDs(in: rows) }
 
     private var highlightAppearance: ReviewDiffHighlightModel.Appearance {
-        ReviewDiffHighlightModel.Appearance(isDark: colorScheme == .dark, increasedContrast: colorSchemeContrast == .increased)
+        ReviewDiffHighlightModel.Appearance(
+            isDark: colorScheme == .dark,
+            increasedContrast: colorSchemeContrast == .increased,
+            lightSurfaceStyle: lightSurfaceStyle,
+            darkSurfaceStyle: darkSurfaceStyle
+        )
     }
 
     var body: some View {
@@ -186,7 +193,7 @@ struct GitDiffView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.bar)
+        .background(AppSurfaceColor.background)
         .accessibilityElement(children: .contain)
     }
 

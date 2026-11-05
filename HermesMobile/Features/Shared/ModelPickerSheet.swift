@@ -283,8 +283,8 @@ struct ModelPickerSheet: View {
         .padding(.vertical, 2)
     }
 
-    private var customEntryForeground: Color {
-        customOption == nil ? Color(.tertiaryLabel) : Color(uiColor: .appSurface(.background))
+    private var customEntryForeground: AnyShapeStyle {
+        customOption == nil ? AnyShapeStyle(Color(.tertiaryLabel)) : AnyShapeStyle(AppSurfaceColor.background)
     }
 
     /// Trailing star shared by model rows and the custom entry. Monochrome:
@@ -308,10 +308,10 @@ struct ModelPickerSheet: View {
         .accessibilityLabel(isFavorite ? removeLabel : addLabel)
     }
 
-    private func starColor(isFavorite: Bool, isInverted: Bool, isEnabled: Bool) -> Color {
-        guard isEnabled else { return Color(.tertiaryLabel) }
-        if isInverted { return Color(uiColor: .appSurface(.background)) }
-        return isFavorite ? Color.primary : Color(.tertiaryLabel)
+    private func starColor(isFavorite: Bool, isInverted: Bool, isEnabled: Bool) -> AnyShapeStyle {
+        guard isEnabled else { return AnyShapeStyle(Color(.tertiaryLabel)) }
+        if isInverted { return AnyShapeStyle(AppSurfaceColor.background) }
+        return AnyShapeStyle(isFavorite ? Color.primary : Color(.tertiaryLabel))
     }
 
     /// One provider group. Inside a List, each view in the disclosure content
@@ -479,7 +479,7 @@ struct ModelPickerSheet: View {
                     if inFlight {
                         ProgressView()
                             .controlSize(.small)
-                            .tint(selected ? Color(uiColor: .appSurface(.background)) : Color.primary)
+                            .tint(selected ? AnyShapeStyle(AppSurfaceColor.background) : AnyShapeStyle(Color.primary))
                     } else if selected {
                         Image(systemName: "checkmark")
                             .font(.body.weight(.semibold))
@@ -799,7 +799,7 @@ extension View {
     /// content that sits outside the row's own button — the model rows'
     /// favorite star does.
     func pickerSelectionPill(isSelected: Bool) -> some View {
-        foregroundStyle(isSelected ? Color(uiColor: .appSurface(.background)) : Color.primary)
+        foregroundStyle(isSelected ? AnyShapeStyle(AppSurfaceColor.background) : AnyShapeStyle(Color.primary))
             .padding(.horizontal, 12)
             .background(
                 isSelected ? Color.primary : Color.clear,

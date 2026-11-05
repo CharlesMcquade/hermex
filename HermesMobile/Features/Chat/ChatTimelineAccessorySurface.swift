@@ -31,12 +31,12 @@ private struct ChatTimelineAccessoryInsetSurfaceModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    private var backgroundColor: Color {
+    private var backgroundColor: AnyShapeStyle {
         if reduceTransparency {
-            return Color(uiColor: .appSurface(.secondaryGroupedBackground))
+            return AnyShapeStyle(AppSurfaceColor.secondaryGroupedBackground)
         }
 
-        return Color(.secondarySystemFill).opacity(0.72)
+        return AnyShapeStyle(Color(.secondarySystemFill).opacity(0.72))
     }
 
     func body(content: Content) -> some View {

@@ -32,6 +32,44 @@ final class AppThemeTests: XCTestCase {
         XCTAssertTrue(light.uiColor(for: .background).isEqual(systemBackground(in: .light)))
     }
 
+    func testSurfaceVariantsResolveImmediatelyWithoutReloading() throws {
+        var environment = EnvironmentValues()
+        environment.colorScheme = .light
+        environment.appLightSurfaceStyleRawValue = AppLightSurfaceStyle.sepia.rawValue
+        let sepia = try rgb(UIColor(AppSurfaceColor.background.resolve(in: environment)))
+        XCTAssertGreaterThan(sepia.red, sepia.blue)
+
+        environment.colorScheme = .dark
+        environment.appDarkSurfaceStyleRawValue = AppDarkSurfaceStyle.softGray.rawValue
+        let updated = try rgb(UIColor(AppSurfaceColor.background.resolve(in: environment)))
+        let expected = try rgb(AppSurfacePalette(
+            colorScheme: .dark, lightStyle: .standard, darkStyle: .softGray
+        ).uiColor(for: .background))
+        XCTAssertEqual(updated.red, expected.red, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testExistingDiffCanvasReappliesLiveVariant() throws {
+        let canvas = ReviewDiffCanvasView(frame: .zero)
+        let identity = ObjectIdentifier(canvas)
+        var environment = EnvironmentValues()
+        environment.colorScheme = .dark
+        environment.appDarkSurfaceStyleRawValue = AppDarkSurfaceStyle.black.rawValue
+        canvas.apply(environment: environment)
+
+        environment.appDarkSurfaceStyleRawValue = AppDarkSurfaceStyle.softGray.rawValue
+        canvas.apply(environment: environment)
+
+        let actual = try rgb(canvas.theme.background.resolvedColor(
+            with: UITraitCollection(userInterfaceStyle: .dark)
+        ))
+        let expected = try rgb(AppSurfacePalette(
+            colorScheme: .dark, lightStyle: .standard, darkStyle: .softGray
+        ).uiColor(for: .background))
+        XCTAssertEqual(actual.red, expected.red, accuracy: 0.001)
+        XCTAssertEqual(ObjectIdentifier(canvas), identity, "Recolouring must not recreate the canvas or lose its scroll state")
+    }
+
     private func systemBackground(in style: UIUserInterfaceStyle) -> UIColor {
         UIColor.systemBackground.resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
     }

@@ -24,6 +24,7 @@ struct KanbanCardDetailView: View {
 }
 
 private struct KanbanCardDetailContent: View {
+    @Environment(\.self) private var environment
     let featureModel: KanbanFeatureState
     @Bindable var state: KanbanCardDetailState
     @State private var showsOperationalHistory = false
@@ -130,7 +131,7 @@ private struct KanbanCardDetailContent: View {
         .refreshable { await state.refresh() }
         .listStyle(.insetGrouped)
         // Wide tables fade into the grouped row they sit on.
-        .environment(\.markdownTableEdgeFadeColor, Color(uiColor: .appSurface(.secondaryGroupedBackground)))
+        .environment(\.markdownTableEdgeFadeColor, AppSurfaceColor.secondaryGroupedBackground.resolve(in: environment))
     }
 
     @ViewBuilder

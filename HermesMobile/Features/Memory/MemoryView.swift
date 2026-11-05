@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct MemoryView: View {
+    @Environment(\.self) private var environment
     let server: URL
     let onAPIError: (Error) -> Void
     /// The Hermes Profile whose memory this is (#1073), named under the title; nil on webui.
@@ -129,7 +130,7 @@ struct MemoryView: View {
                 await loadMemory()
             }
             // Wide tables fade into the grouped row they sit on.
-            .environment(\.markdownTableEdgeFadeColor, Color(uiColor: .appSurface(.secondaryGroupedBackground)))
+            .environment(\.markdownTableEdgeFadeColor, AppSurfaceColor.secondaryGroupedBackground.resolve(in: environment))
         }
     }
 

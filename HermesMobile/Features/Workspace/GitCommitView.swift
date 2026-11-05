@@ -248,7 +248,7 @@ struct GitCommitView: View {
             }
         }
         .padding(16)
-        .background(.bar)
+        .background(AppSurfaceColor.background)
     }
 
     private func commitLabel(_ title: LocalizedStringKey) -> some View {

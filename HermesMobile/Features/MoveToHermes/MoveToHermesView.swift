@@ -641,7 +641,7 @@ private struct MoveToHermesReportView: View {
         .fontWeight(.semibold)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.bar)
+        .background(AppSurfaceColor.background)
     }
 
     private var staying: Int { report.notCopied.count + report.rejected.count + report.oversized.count + report.keptOnWebui.count }

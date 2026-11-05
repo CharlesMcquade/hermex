@@ -101,8 +101,8 @@ private struct ComposerStatusView: View {
         isError ? Color(.label) : Color.secondary
     }
 
-    private var backgroundColor: Color {
-        isError ? Color.red.opacity(0.08) : Color(uiColor: .appSurface(.secondaryBackground))
+    private var backgroundColor: AnyShapeStyle {
+        isError ? AnyShapeStyle(Color.red.opacity(0.08)) : AnyShapeStyle(AppSurfaceColor.secondaryBackground)
     }
 
     private var borderColor: Color {

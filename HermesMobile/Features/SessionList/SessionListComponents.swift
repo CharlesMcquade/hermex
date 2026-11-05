@@ -2451,7 +2451,7 @@ private struct SessionsScreenListRow: ViewModifier {
         content
             .listRowInsets(insets)
             .listRowSeparator(.hidden)
-            .listRowBackground(isClear ? Color.clear : Color(uiColor: .appSurface(.background)))
+            .listRowBackground(isClear ? AppSurfaceColor.background.opacity(0) : AppSurfaceColor.background)
     }
 }
 

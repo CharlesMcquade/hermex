@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import UIKit
 
 /// Syntax colour for the diff sheet's visible rows. The sheet feeds it rows as they
@@ -28,6 +29,8 @@ final class ReviewDiffHighlightModel {
     struct Appearance: Equatable {
         var isDark = false
         var increasedContrast = false
+        var lightSurfaceStyle = AppLightSurfaceStyle.standard.rawValue
+        var darkSurfaceStyle = AppDarkSurfaceStyle.black.rawValue
     }
 
     private(set) var tokensByRowID: [String: [SourceHighlightRun]] = [:]
@@ -256,7 +259,11 @@ private struct TintedBackgrounds {
             traits.userInterfaceLevel = .elevated
             traits.accessibilityContrast = appearance.increasedContrast ? .high : .normal
         }
-        let theme = ReviewDiffTheme()
+        var environment = EnvironmentValues()
+        environment.colorScheme = appearance.isDark ? .dark : .light
+        environment.appLightSurfaceStyleRawValue = appearance.lightSurfaceStyle
+        environment.appDarkSurfaceStyleRawValue = appearance.darkSurfaceStyle
+        let theme = ReviewDiffTheme(environment: environment)
         let background = Self.components(theme.background.resolvedColor(with: traits))
         func luminances(_ tint: UIColor) -> Luminances {
             let tint = Self.components(tint.resolvedColor(with: traits))

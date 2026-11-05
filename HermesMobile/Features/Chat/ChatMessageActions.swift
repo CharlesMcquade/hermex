@@ -191,6 +191,7 @@ struct SelectableTextView: UIViewRepresentable {
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
+        textView.backgroundColor = UIColor(AppSurfaceColor.background.resolve(in: context.environment))
         if textView.text != text {
             textView.text = text
         }
